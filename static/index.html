@@ -1,0 +1,2093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CreditDesk</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #0f1923;
+      --ink-light: #4a5568;
+      --paper:     #f7f4ef;
+      --card:      #ffffff;
+      --accent:    #c84b2f;
+      --accent2:   #1a6b4a;
+      --border:    #e2ddd6;
+      --shadow:    0 2px 16px rgba(15,25,35,0.08);
+      --sidebar-w: 240px;
+      --blue:      #2563eb;
+      --amber:     #d97706;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top Header ── */
+    header {
+      background: var(--ink);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 10;
+    }
+    header .logo-mark {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      color: #fff; font-size: 16px; font-weight: 700;
+    }
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 400;
+    }
+    header .header-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 16px;
+    }
+    header .header-right span { color: #8899aa; font-size: 12px; font-weight: 300; }
+
+    /* ── Layout ── */
+    .app-layout { display: flex; flex: 1; min-height: 0; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--ink);
+      border-right: 1px solid #1a2a3a;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar .nav-section { padding: 0 16px; margin-bottom: 8px; }
+    .sidebar .nav-section-title {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+      text-transform: uppercase; color: #556677; padding: 8px 12px;
+    }
+    .sidebar .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      color: #8899aa; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: #cdd6e0; }
+    .sidebar .nav-item.active { background: rgba(200,75,47,0.15); color: #f0a08a; }
+    .sidebar .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar .nav-footer { padding: 16px; border-top: 1px solid #1a2a3a; margin-top: 8px; }
+    .sidebar .nav-footer .nav-item { color: #556677; font-size: 12px; }
+
+    /* ── Main Content ── */
+    .main-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 16px; }
+    .page-header h2 { font-family: 'DM Serif Display', serif; font-size: 26px; font-weight: 400; }
+    .page-header p { color: var(--ink-light); font-size: 13px; margin-top: 4px; }
+
+    /* ── Card ── */
+    .page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; }
+    .card {
+      background: var(--card); border-radius: 16px;
+      border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px;
+    }
+    .card-title {
+      font-family: 'DM Serif Display', serif; font-size: 18px; font-weight: 400;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title .icon {
+      width: 30px; height: 30px; background: #fff3f0; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+
+    /* ── Form ── */
+    .field { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px;
+    }
+    input, select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+      background: #fdfcfa; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,75,47,0.1);
+      background: #fff;
+    }
+    input[type="date"] { cursor: pointer; }
+    input[type="range"] { padding: 0; border: none; background: transparent; border-radius: 0; box-shadow: none; }
+    input[type="range"]:focus { border: none; box-shadow: none; background: transparent; }
+    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .days-badge {
+      display: inline-block; margin-top: 8px; padding: 4px 12px;
+      background: #f0f7f4; border-radius: 20px; font-size: 12px; font-weight: 600;
+      color: var(--accent2); border: 1px solid #c3e0d4;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%; margin-top: 8px; padding: 13px;
+      color: #fff; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.3px; transition: background 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn-primary { background: var(--accent); }
+    .btn-primary:hover { background: #b03d23; }
+    .btn-blue { background: var(--blue); }
+    .btn-blue:hover { background: #1d4ed8; }
+    .btn-green { background: var(--accent2); }
+    .btn-green:hover { background: #155e3e; }
+    .btn-amber { background: var(--amber); }
+    .btn-amber:hover { background: #b45309; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .btn .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+    /* ── Results (Loan) ── */
+    .results-card { display: flex; flex-direction: column; }
+    .result-placeholder {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 40px 20px; color: #aaa; gap: 12px;
+    }
+    .result-placeholder .big-icon { font-size: 48px; opacity: 0.4; color: var(--ink); }
+    .result-placeholder p { font-size: 14px; line-height: 1.6; }
+    .result-rows { display: none; flex-direction: column; }
+    .result-rows.visible { display: flex; }
+    .result-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .label { color: var(--ink-light); }
+    .result-row .value { font-weight: 600; }
+    .result-row .value.green { color: var(--accent2); }
+    .result-row .value.red { color: var(--accent); }
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    .total-banner {
+      margin-top: auto; background: var(--ink); border-radius: 14px;
+      padding: 16px 20px; display: none;
+    }
+    .total-banner.visible { display: block; }
+    .total-banner .total-label { font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; color: #8899aa; font-weight: 600; margin-bottom: 4px; }
+    .total-banner .total-amount { font-family: 'DM Serif Display', serif; font-size: 22px; color: #fff; }
+    .total-banner .total-sub { margin-top: 6px; font-size: 12px; color: #8899aa; }
+    .total-banner .total-sub span { color: #f0b97d; font-weight: 600; }
+
+    /* ── AA Stepper ── */
+    .stepper { display: flex; gap: 0; margin-bottom: 28px; max-width: 700px; }
+    .step {
+      flex: 1; text-align: center; padding: 12px 8px;
+      background: #eae6df; border-right: 2px solid var(--paper);
+      font-size: 12px; font-weight: 600; color: #999; position: relative; transition: all 0.3s;
+    }
+    .step:first-child { border-radius: 10px 0 0 10px; }
+    .step:last-child { border-radius: 0 10px 10px 0; border-right: none; }
+    .step.active { background: var(--accent); color: #fff; }
+    .step.done { background: var(--accent2); color: #fff; cursor: pointer; }
+    .step.active { cursor: default; }
+    .step .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.2);
+      font-size: 11px; margin-right: 6px;
+    }
+
+    /* ── AA State card ── */
+    .aa-section { max-width: 700px; }
+    .aa-section .card { margin-bottom: 20px; }
+    .aa-step-content { display: none; }
+    .aa-step-content.active { display: block; }
+
+    /* ── Status badges ── */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .status-badge.pending { background: #fef3cd; color: #856404; }
+    .status-badge.active { background: #d4edda; color: #155724; }
+    .status-badge.ready { background: #cce5ff; color: #004085; }
+    .status-badge.failed { background: #f8d7da; color: #721c24; }
+
+    /* ── JSON / Log output ── */
+    .response-log {
+      background: #1a1a2e; color: #a8e6a3; border-radius: 10px;
+      padding: 14px 16px; font-family: 'Courier New', monospace;
+      font-size: 12px; max-height: 200px; overflow-y: auto;
+      margin-top: 12px; white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* ── Info row ── */
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .il { color: var(--ink-light); }
+    .info-row .iv { font-weight: 600; font-family: 'Courier New', monospace; font-size: 12px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .info-row .iv.copyable { cursor: pointer; color: var(--blue); }
+    .info-row .iv.copyable:hover { text-decoration: underline; }
+
+    /* ── FI Data: Account Tabs ── */
+    .acc-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .acc-tab {
+      padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border); background: #fff; color: var(--ink-light);
+      transition: all 0.15s;
+    }
+    .acc-tab:hover { border-color: var(--accent); color: var(--ink); }
+    .acc-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .acc-tab .acc-tab-fip { font-size: 10px; font-weight: 400; opacity: 0.7; display: block; margin-top: 2px; }
+
+    .acc-panel { display: none; }
+    .acc-panel.active { display: block; }
+
+    /* ── Account summary card ── */
+    .acc-summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .acc-stat {
+      background: #f9f7f4; border-radius: 12px; padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .acc-stat .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-light); margin-bottom: 4px; }
+    .acc-stat .stat-value { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); }
+    .acc-stat .stat-value.green { color: var(--accent2); }
+    .acc-stat .stat-value.red { color: var(--accent); }
+
+    /* ── Transaction table ── */
+    .txn-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    .txn-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .txn-table th {
+      background: var(--ink); color: #cdd6e0; padding: 10px 14px;
+      text-align: left; font-weight: 600; font-size: 10px; letter-spacing: 0.8px;
+      text-transform: uppercase; position: sticky; top: 0;
+    }
+    .txn-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .txn-table tr:last-child td { border-bottom: none; }
+    .txn-table tr:hover td { background: #faf8f5; }
+    .txn-type-credit { color: var(--accent2); font-weight: 600; }
+    .txn-type-debit { color: var(--accent); font-weight: 600; }
+    .txn-table .txn-amount { font-family: 'Courier New', monospace; font-weight: 600; text-align: right; }
+    .txn-table .txn-balance { font-family: 'Courier New', monospace; color: var(--ink-light); text-align: right; }
+    .txn-count-badge { font-size: 12px; color: var(--ink-light); margin-bottom: 12px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) { .page-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .sidebar { display: none; } .main-content { padding: 20px; } header { padding: 14px 16px; } }
+
+    /* ── Animations ── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeUp 0.35s ease forwards; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    @keyframes rowIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+    .skeleton { background: linear-gradient(90deg, #f0ede8 25%, #e5e0d8 50%, #f0ede8 75%); background-size: 400px 100%; animation: shimmer 1.2s ease infinite; border-radius: 6px; height: 14px; width: 80px; display: inline-block; }
+    .result-row { opacity: 0; }
+    .result-row.row-visible { animation: rowIn 0.3s ease forwards; }
+
+    /* ── Document Checklist Panel ── */
+    .doc-checklist-toggle {
+      position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+      background: var(--primary); color: #fff; border: none; cursor: pointer;
+      padding: 12px 6px; border-radius: 8px 0 0 8px; font-size: 13px;
+      writing-mode: vertical-rl; text-orientation: mixed; z-index: 1001;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.15); transition: right 0.3s ease;
+    }
+    .doc-checklist-toggle:hover { background: #1a3040; }
+    .doc-checklist-toggle.panel-open { right: 280px; }
+    .doc-checklist-panel {
+      position: fixed; right: -280px; top: 0; bottom: 0; width: 280px;
+      background: #fff; box-shadow: -3px 0 15px rgba(0,0,0,0.1);
+      z-index: 1000; transition: right 0.3s ease; overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .doc-checklist-panel.open { right: 0; }
+    .doc-checklist-header {
+      padding: 18px 16px 12px; border-bottom: 1.5px solid var(--border);
+      background: #fdfcfa; position: sticky; top: 0;
+    }
+    .doc-checklist-header h3 { font-family: 'DM Serif Display', serif; font-size: 17px; margin: 0 0 8px; }
+    .doc-checklist-progress { height: 6px; background: #e8e4de; border-radius: 3px; overflow: hidden; }
+    .doc-checklist-progress-bar { height: 100%; background: var(--accent2); border-radius: 3px; transition: width 0.3s ease; }
+    .doc-checklist-count { font-size: 11px; color: var(--ink-light); margin-top: 4px; }
+    .doc-checklist-body { padding: 12px 16px; flex: 1; }
+    .doc-check-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 0;
+      border-bottom: 1px solid #f0ede8; cursor: pointer; user-select: none;
+    }
+    .doc-check-item:last-child { border-bottom: none; }
+    .doc-check-item input[type="checkbox"] { display: none; }
+    .doc-check-box {
+      width: 20px; height: 20px; border-radius: 5px; border: 2px solid #c8c0b4;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all 0.2s ease; font-size: 11px; color: transparent;
+    }
+    .doc-check-item.checked .doc-check-box {
+      background: var(--accent2); border-color: var(--accent2); color: #fff;
+    }
+    .doc-check-label { font-size: 13px; color: var(--ink); transition: all 0.2s; }
+    .doc-check-item.checked .doc-check-label { color: #999; text-decoration: line-through; }
+    @media (max-width: 700px) { .doc-checklist-toggle { display: none; } .doc-checklist-panel { display: none; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">C</div>
+  <h1>CreditDesk</h1>
+  <div class="header-right"><span id="currentDate"></span></div>
+</header>
+
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-section-title">Tools</div>
+      <a class="nav-item active" data-page="loan-calculator" onclick="showPage('loan-calculator', this)">
+        <i class="fa-solid fa-calculator"></i> Loan Calculator
+      </a>
+      <a class="nav-item" data-page="customer-behavior" onclick="showPage('customer-behavior', this)">
+        <i class="fa-solid fa-users-viewfinder"></i> Customer Behavior
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Account Aggregator</div>
+      <a class="nav-item" data-page="consent" onclick="showPage('consent', this)">
+        <i class="fa-solid fa-handshake"></i> Bank Access
+      </a>
+      <a class="nav-item" data-page="fidata" onclick="showPage('fidata', this)">
+        <i class="fa-solid fa-file-lines"></i> Fetch Statement
+      </a>
+      <a class="nav-item" data-page="analysis" onclick="showPage('analysis', this)">
+        <i class="fa-solid fa-magnifying-glass-chart"></i> Statement Analysis
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Customer Data</div>
+      <a class="nav-item" data-page="credit-analyser" onclick="showPage('credit-analyser', this)">
+        <i class="fa-solid fa-user-check"></i> Credit Analyser
+      </a>
+    </div>
+    <div class="sidebar-spacer"></div>
+    <div class="nav-footer">
+      <a class="nav-item" data-page="settings" onclick="showPage('settings', this)">
+        <i class="fa-solid fa-gear"></i> Settings
+      </a>
+    </div>
+  </nav>
+
+  <div class="main-content">
+
+    <!-- ═══════════ PAGE: Loan Calculator ═══════════ -->
+    <div class="page active" id="page-loan-calculator">
+      <div class="page-header">
+        <h2>Loan Calculator</h2>
+        <p>Calculate interest, fees, and repayment for short-term loans</p>
+      </div>
+      <div class="page-grid">
+        <div class="card">
+          <div class="card-title"><div class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></div> Loan Details</div>
+          <div class="field"><label>Loan Amount (&#8377;)</label><input type="number" id="loanAmount" placeholder="e.g. 50000" min="1000" /></div>
+          <div class="field">
+            <label>Loan Period</label>
+            <div class="date-row"><div><input type="date" id="startDate" /></div><div><input type="date" id="endDate" /></div></div>
+            <div id="daysBadge" class="days-badge" style="display:none">-- days</div>
+          </div>
+          <div class="field"><label>Interest Rate (% per day)</label><input type="number" id="interestRate" placeholder="e.g. 1.0" step="0.01" min="0.5" max="1" /></div>
+          <div class="field">
+            <label>Processing Fee <small style="color:#aaa">(<span id="feePercLabel">10</span>% = &#8377;<span id="feeAmtLabel">0</span>)</small></label>
+            <input type="range" id="feeSlider" min="5" max="10" step="0.5" value="10" style="width:100%;accent-color:var(--primary);cursor:pointer;" />
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:2px;"><span>5%</span><span>10%</span></div>
+            <input type="hidden" id="processingFee" value="0" />
+          </div>
+          <button class="btn btn-primary" onclick="calculate()"><span class="spinner" style="display:none"></span><i class="fa-solid fa-circle-arrow-right btn-icon"></i> Calculate Loan</button>
+        </div>
+        <div class="card results-card">
+          <div class="card-title"><div class="icon"><i class="fa-solid fa-chart-pie"></i></div> Loan Summary</div>
+          <div class="result-placeholder" id="placeholder"><div class="big-icon"><i class="fa-solid fa-calculator"></i></div><p>Fill in the loan details<br/>and click Calculate to see the summary.</p></div>
+          <div class="result-rows" id="resultRows">
+            <div class="result-row"><span class="label">Loan Amount</span><span class="value" id="r-loan">--</span></div>
+            <div class="result-row"><span class="label">Disbursed Amount <small style="color:#aaa">(after fees)</small></span><span class="value green" id="r-disbursed">--</span></div>
+            <div class="result-row"><span class="label">Tenure</span><span class="value" id="r-days">--</span></div>
+            <div class="result-row"><span class="label">Interest Rate</span><span class="value" id="r-rate">--</span></div>
+            <div class="result-row"><span class="label">Interest Amount</span><span class="value red" id="r-interest">--</span></div>
+            <div class="divider"></div>
+            <div class="result-row"><span class="label">Processing Fee</span><span class="value" id="r-pfee">--</span></div>
+            <div class="result-row"><span class="label">GST on Processing Fee <small style="color:#aaa">(18%)</small></span><span class="value" id="r-gst">--</span></div>
+            <div class="result-row"><span class="label">Total Fees</span><span class="value red" id="r-totalfees">--</span></div>
+          </div>
+          <div class="total-banner" id="totalBanner">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+              <div>
+                <div class="total-label"><i class="fa-solid fa-hand-holding-dollar"></i> &nbsp;You Receive</div>
+                <div class="total-amount" id="r-disbursed2">&#8377;0</div>
+                <div class="total-sub">Amount in hand</div>
+              </div>
+              <div style="color:#8899aa; font-size:22px; padding-top:18px;">&rarr;</div>
+              <div style="text-align:right;">
+                <div class="total-label"><i class="fa-solid fa-money-bill-wave"></i> &nbsp;You Repay</div>
+                <div class="total-amount" id="r-total">&#8377;0</div>
+                <div class="total-sub">After <span id="r-days2">--</span> days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Consent Flow ═══════════ -->
+    <div class="page" id="page-consent">
+      <div class="page-header">
+        <h2>Bank Account Access</h2>
+        <p>Connect to a customer's bank account to fetch their statement</p>
+      </div>
+
+      <div class="stepper">
+        <div class="step active" id="cs-step-1" onclick="csStepClick(1)"><span class="step-num">1</span>Connect</div>
+        <div class="step" id="cs-step-2" onclick="csStepClick(2)"><span class="step-num">2</span>Request Access</div>
+        <div class="step" id="cs-step-3" onclick="csStepClick(3)"><span class="step-num">3</span>Verify Approval</div>
+      </div>
+
+      <div class="aa-section">
+        <!-- STEP 1: Connect -->
+        <div class="aa-step-content active" id="cs-content-1">
+          <div class="card">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-plug"></i></div> Connect to Server</div>
+            <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">Connect to the Account Aggregator system.</p>
+            <button class="btn btn-primary" id="cs-loginBtn" onclick="csLogin()"><i class="fa-solid fa-plug"></i> Connect</button>
+            <div id="cs-loginResult" style="display:none; margin-top:16px;">
+              <div class="info-row"><span class="il">Connection</span><span class="iv" id="cs-loginStatus"></span></div>
+              <span class="iv copyable" id="cs-token" title="Click to copy" onclick="copyText(this)" style="display:none;"></span>
+              <details style="margin-top:10px;"><summary style="font-size:11px;color:var(--ink-light);cursor:pointer;">Show server response</summary><div class="response-log" id="cs-loginLog"></div></details>
+              <button class="btn btn-blue" id="cs-nextStep2" style="display:none; margin-top:14px;" onclick="csGoStep(2)"><i class="fa-solid fa-arrow-right"></i> Next: Request Bank Access</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Request Access -->
+        <div class="aa-step-content" id="cs-content-2">
+          <div class="card">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-mobile-screen"></i></div> Request Bank Access</div>
+            <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">Enter the customer's mobile number to send a bank statement access request.</p>
+            <div class="field"><label>Customer Mobile Number</label><input type="text" id="cs-custId" placeholder="e.g. 9878641035" /></div>
+            <input type="hidden" id="cs-consentType" value="periodic" />
+            <button class="btn btn-blue" id="cs-consentBtn" onclick="csCreateConsent()"><i class="fa-solid fa-paper-plane"></i> Send Access Request</button>
+            <div id="cs-consentResult" style="display:none; margin-top:16px;">
+              <div style="background:#f0f7f4; border-radius:12px; padding:16px; margin-bottom:14px; border:1px solid #c3e0d4;">
+                <div style="font-size:12px; font-weight:600; color:var(--accent2); margin-bottom:6px;"><i class="fa-solid fa-circle-info"></i> Request Sent Successfully</div>
+                <div style="font-size:13px; color:var(--ink);">The customer needs to approve this request. Click the link below to open the approval page.</div>
+              </div>
+              <span class="iv copyable" id="cs-consentHandle" onclick="copyText(this)" style="display:none;"></span>
+              <!-- Redirect URL - prominent clickable box -->
+              <div id="cs-redirectBox" style="display:none; margin:16px 0;">
+                <a id="cs-redirectLink" href="#" target="_blank" style="display:block; background:linear-gradient(135deg, #1a56db, #2563eb); border-radius:14px; padding:20px 24px; text-decoration:none; color:#fff; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 4px 20px rgba(37,99,235,0.3);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(37,99,235,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(37,99,235,0.3)'">
+                  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:18px;"></i>
+                    <span style="font-size:15px; font-weight:700;">Open Approval Page (Customer clicks here)</span>
+                  </div>
+                  <div id="cs-redirectUrl" style="font-size:11px; word-break:break-all; color:rgba(255,255,255,0.7); font-family:'Courier New',monospace; line-height:1.5;"></div>
+                </a>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                  <button class="btn btn-blue" style="width:auto; padding:8px 16px; font-size:12px; margin:0;" onclick="copyRedirectUrl()"><i class="fa-solid fa-copy"></i> Copy Link</button>
+                </div>
+              </div>
+              <details style="margin-top:10px;"><summary style="font-size:11px;color:var(--ink-light);cursor:pointer;">Show server response</summary><div class="response-log" id="cs-consentLog"></div></details>
+              <button class="btn btn-green" id="cs-nextStep3" style="display:none; margin-top:14px;" onclick="csGoStep(3)"><i class="fa-solid fa-arrow-right"></i> Next: Check if Customer Approved</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Verify Approval -->
+        <div class="aa-step-content" id="cs-content-3">
+          <div class="card">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-circle-check"></i></div> Check Approval Status</div>
+            <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">After the customer approves on their bank app, click below to verify.</p>
+            <input type="hidden" id="cs-statusHandle" />
+            <input type="hidden" id="cs-statusCustId" />
+            <button class="btn btn-green" id="cs-statusBtn" onclick="csCheckStatus()"><i class="fa-solid fa-rotate"></i> Check Approval Status</button>
+            <div id="cs-statusResult" style="display:none; margin-top:16px;">
+              <div class="info-row"><span class="il">Approval Status</span><span id="cs-consentStatus"></span></div>
+              <span class="iv copyable" id="cs-consentId" onclick="copyText(this)" style="display:none;"></span>
+              <div id="cs-approvedMsg" style="display:none; background:#f0f7f4; border-radius:12px; padding:16px; margin-top:14px; border:1px solid #c3e0d4;">
+                <div style="font-size:13px; color:var(--ink);"><i class="fa-solid fa-check-circle" style="color:var(--accent2);"></i> Customer has approved! You can now go to <strong>Fetch Statement</strong> from the sidebar to download their bank statement.</div>
+              </div>
+              <details style="margin-top:10px;"><summary style="font-size:11px;color:var(--ink-light);cursor:pointer;">Show server response</summary><div class="response-log" id="cs-statusLog"></div></details>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: FI Data ═══════════ -->
+    <div class="page" id="page-fidata">
+      <div class="page-header">
+        <h2>Fetch Bank Statement</h2>
+        <p>Download and view bank statements for approved customers</p>
+      </div>
+
+      <div class="stepper">
+        <div class="step active" id="fi-step-1" onclick="fiStepClick(1)"><span class="step-num">1</span>Request Statement</div>
+        <div class="step" id="fi-step-2" onclick="fiStepClick(2)"><span class="step-num">2</span>Wait for Bank</div>
+        <div class="step" id="fi-step-3" onclick="fiStepClick(3)"><span class="step-num">3</span>View Statement</div>
+      </div>
+
+      <div class="aa-section">
+        <!-- STEP 1: Request Statement -->
+        <div class="aa-step-content active" id="fi-content-1">
+          <div class="card">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-calendar-days"></i></div> Select Statement Period</div>
+            <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">Choose the date range for the bank statement. All other details are auto-filled from the Consent Flow.</p>
+            <input type="hidden" id="fi-token" />
+            <input type="hidden" id="fi-custId" />
+            <input type="hidden" id="fi-consentHandleId" />
+            <input type="hidden" id="fi-consentId" />
+            <div id="fi-autoFillStatus" style="background:#f0f7f4; border-radius:12px; padding:14px 16px; margin-bottom:18px; border:1px solid #c3e0d4; font-size:12px; display:none;">
+              <i class="fa-solid fa-check-circle" style="color:var(--accent2);"></i> <strong>Auto-filled:</strong> <span id="fi-autoFillInfo"></span>
+            </div>
+            <div id="fi-noAutoFill" style="background:#fef3cd; border-radius:12px; padding:14px 16px; margin-bottom:18px; border:1px solid #ffc107; font-size:12px;">
+              <i class="fa-solid fa-triangle-exclamation" style="color:#856404;"></i> Please complete the <strong>Bank Account Access</strong> flow first before fetching statements.
+            </div>
+            <div class="field">
+              <label>Statement Period</label>
+              <div class="date-row">
+                <div>
+                  <div style="font-size:11px; color:var(--ink-light); margin-bottom:4px;">From</div>
+                  <input type="date" id="fi-dateFrom" />
+                </div>
+                <div>
+                  <div style="font-size:11px; color:var(--ink-light); margin-bottom:4px;">To</div>
+                  <input type="date" id="fi-dateTo" />
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="fi-reqBtn" onclick="fiRequest()"><i class="fa-solid fa-paper-plane"></i> Request Bank Statement</button>
+            <div id="fi-reqResult" style="display:none; margin-top:16px;">
+              <div style="background:#f0f7f4; border-radius:12px; padding:14px 16px; border:1px solid #c3e0d4; font-size:13px;">
+                <i class="fa-solid fa-check-circle" style="color:var(--accent2);"></i> Statement request sent to bank. Click next to check if it's ready.
+              </div>
+              <span class="iv copyable" id="fi-sessionId" onclick="copyText(this)" style="display:none;"></span>
+              <details style="margin-top:10px;"><summary style="font-size:11px;color:var(--ink-light);cursor:pointer;">Show server response</summary><div class="response-log" id="fi-reqLog"></div></details>
+              <button class="btn btn-amber" id="fi-nextStep2" style="display:none; margin-top:14px;" onclick="fiGoStep(2)"><i class="fa-solid fa-arrow-right"></i> Next: Check if Statement is Ready</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Wait for Bank -->
+        <div class="aa-step-content" id="fi-content-2">
+          <div class="card">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-clock"></i></div> Waiting for Bank Response</div>
+            <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">The bank is preparing the statement. Click below to check if it's ready.</p>
+            <input type="hidden" id="fi-statusSessionId" />
+            <button class="btn btn-amber" id="fi-statusBtn" onclick="fiStatus()"><i class="fa-solid fa-rotate"></i> Check if Ready</button>
+            <div id="fi-statusResult" style="display:none; margin-top:16px;">
+              <div id="fi-statusAccounts"></div>
+              <details style="margin-top:10px;"><summary style="font-size:11px;color:var(--ink-light);cursor:pointer;">Show server response</summary><div class="response-log" id="fi-statusLog"></div></details>
+              <button class="btn btn-green" id="fi-nextStep3" style="display:none; margin-top:14px;" onclick="fiGoStep(3)"><i class="fa-solid fa-arrow-right"></i> Next: View Bank Statement</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: View Statement -->
+        <div class="aa-step-content" id="fi-content-3">
+          <div class="card" style="max-width:none;">
+            <div class="card-title"><div class="icon"><i class="fa-solid fa-file-lines"></i></div> Bank Statement</div>
+            <div style="display:flex; gap:12px; max-width:700px; flex-wrap:wrap;">
+              <button class="btn btn-green" id="fi-fetchBtn" onclick="fiFetch()" style="flex:1; min-width:180px;"><i class="fa-solid fa-eye"></i> View Statement</button>
+              <button class="btn btn-blue" id="fi-downloadBtn" onclick="fiDownloadCSV()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-csv"></i> Download This CSV</button>
+              <button class="btn btn-amber" id="fi-downloadAllBtn" onclick="fiDownloadAllCSV()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-zipper"></i> Download All CSVs</button>
+              <button class="btn btn-green" id="fi-saveBtn" onclick="saveStatement()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-floppy-disk"></i> Save Statement</button>
+            </div>
+            <div id="fi-fetchResult" style="display:none; margin-top:20px;">
+              <!-- Account tabs -->
+              <div class="acc-tabs" id="fi-accTabs"></div>
+              <!-- Account panels -->
+              <div id="fi-accPanels"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Statement Analysis ═══════════ -->
+    <div class="page" id="page-analysis">
+      <div class="page-header">
+        <h2>Statement Analysis</h2>
+        <p>Analyze bank statements to identify salary, EMIs, payday loans, eNACH bounces and repeated payments</p>
+      </div>
+
+      <!-- Search Saved Statements -->
+      <div style="max-width:1100px;">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title"><div class="icon" style="background:#eef2ff;"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue);"></i></div> Search Saved Statements</div>
+          <div style="display:grid; grid-template-columns:1fr 160px auto; gap:14px; align-items:end;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Search Term</label>
+              <input type="text" id="stmt-search-input" placeholder="Enter customer name or mobile number..." />
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Search By</label>
+              <select id="stmt-search-type">
+                <option value="name">Customer Name</option>
+                <option value="mobile">Mobile Number</option>
+              </select>
+            </div>
+            <button class="btn btn-blue" style="height:42px; width:120px; margin-top:0;" onclick="searchSavedStatements()">
+              <i class="fa-solid fa-magnifying-glass btn-icon"></i> Search
+            </button>
+          </div>
+          <div id="stmt-search-results" style="margin-top:16px;"></div>
+        </div>
+      </div>
+
+      <div id="analysis-noData" style="max-width:1100px;">
+        <div class="card">
+          <div style="text-align:center; padding:30px 20px; color:#999;">
+            <div style="font-size:48px; opacity:0.4; margin-bottom:12px;"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+            <p style="font-size:14px;">No statement data available.<br/>Search a saved statement above or <strong>Fetch Statement</strong> first.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="analysis-content" style="display:none; max-width:1100px;">
+        <!-- Account selector if multiple -->
+        <div id="analysis-accSelect" style="margin-bottom:20px; display:none;">
+          <label>Select Account</label>
+          <select id="analysis-accPicker" onchange="runAnalysis(this.value)" style="max-width:400px;"></select>
+        </div>
+
+        <!-- Customer info banner -->
+        <div id="analysis-customer-info" style="display:none; margin-bottom:20px; padding:20px 24px; background:linear-gradient(135deg, #1a2332 0%, #2a3a4e 100%); border-radius:14px; color:#fff; display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:20px;">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div>
+                <div id="analysis-cust-name" style="font-size:18px; font-weight:700; letter-spacing:0.3px;"></div>
+                <div style="display:flex; gap:16px; margin-top:4px; font-size:13px; opacity:0.8;">
+                  <span id="analysis-cust-mobile"></span>
+                  <span id="analysis-cust-acc"></span>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; opacity:0.6; margin-bottom:2px;">Last Balance</div>
+              <div id="analysis-cust-balance" style="font-size:22px; font-weight:700;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:16px; margin-bottom:24px;" id="analysis-summary"></div>
+
+        <!-- Salary -->
+        <div class="card" style="margin-bottom:20px;" id="analysis-salary-card">
+          <div class="card-title"><div class="icon" style="background:#e8f5e9;"><i class="fa-solid fa-money-bill-trend-up" style="color:var(--accent2);"></i></div> Salary Credits</div>
+          <div id="analysis-salary"></div>
+        </div>
+
+        <!-- EMI / Loans (merged EMI + loan repayments) -->
+        <div class="card" style="margin-bottom:20px;" id="analysis-emi-card">
+          <div class="card-title"><div class="icon" style="background:#fff3e0;"><i class="fa-solid fa-credit-card" style="color:var(--amber);"></i></div> EMI / Loans</div>
+          <div id="analysis-emi"></div>
+        </div>
+
+        <!-- NACH Bounces (only bounces) -->
+        <div class="card" style="margin-bottom:20px;" id="analysis-bounce-card">
+          <div class="card-title"><div class="icon" style="background:#fce4ec;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent);"></i></div> NACH Bounces</div>
+          <div id="analysis-bounce"></div>
+        </div>
+
+        <!-- Frequent Transfers -->
+        <div class="card" style="margin-bottom:20px;" id="analysis-freq-card">
+          <div class="card-title"><div class="icon" style="background:#ede9fe;"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#7c3aed;"></i></div> Frequent Transfers</div>
+          <div id="analysis-freq"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Credit Analyser ═══════════ -->
+    <div class="page" id="page-credit-analyser">
+      <div class="page-header">
+        <h2>Credit Analyser</h2>
+        <p>Evaluate credit eligibility based on income, CIBIL score, obligations and other parameters</p>
+      </div>
+      <div style="max-width:1100px;">
+        <!-- Compact form card with 2-col grid -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title"><div class="icon" style="background:#eef2ff;"><i class="fa-solid fa-user-shield" style="color:var(--blue);"></i></div> Applicant Details</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px 18px;">
+            <div class="field" style="margin-bottom:0;"><label>Monthly Income (&#8377;)</label><input type="text" id="ca-income" placeholder="e.g. 1,46,000" min="0" oninput="formatIndianComma(this)" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Fixed Obligations (&#8377;)</label><input type="text" id="ca-obligations" placeholder="e.g. 28,000" min="0" oninput="formatIndianComma(this)" /></div>
+            <div class="field" style="margin-bottom:0;"><label>CIBIL Score</label><input type="number" id="ca-cibil" placeholder="e.g. 678" min="300" max="900" /></div>
+            <div class="field" style="margin-bottom:0;"><label>CIBIL Overdue (6 months)</label><input type="number" id="ca-overdue" placeholder="e.g. 0" min="0" max="10" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Active EMI / Loans (6 months)</label><input type="number" id="ca-emi" placeholder="e.g. 0" min="0" max="10" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Running Payday Loans</label><input type="number" id="ca-payday" placeholder="e.g. 3" min="0" max="10" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Residence Type</label>
+              <select id="ca-residence">
+                <option value="own house">Own House</option>
+                <option value="rented">Rented</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>eNACH Bounces (6 months)</label><input type="number" id="ca-enach" placeholder="e.g. 3" min="0" max="10" /></div>
+          </div>
+          <button class="btn btn-blue" style="max-width:260px; margin-top:18px;" onclick="analyzeCredit()"><span class="spinner" id="ca-spinner" style="display:none"></span><i class="fa-solid fa-magnifying-glass-dollar btn-icon" id="ca-btn-icon"></i> Analyse Credit</button>
+        </div>
+        <!-- Result section -->
+        <div class="card">
+          <div class="card-title"><div class="icon" style="background:#f0fdf4;"><i class="fa-solid fa-clipboard-check" style="color:var(--accent2);"></i></div> Analysis Result</div>
+          <div class="result-placeholder" id="ca-placeholder"><div class="big-icon"><i class="fa-solid fa-user-check"></i></div><p>Fill in the applicant details and click Analyse to see eligibility.</p></div>
+          <div id="ca-results" style="display:none;">
+            <!-- Decision Banner (top) -->
+            <div class="total-banner" id="ca-banner" style="display:none; margin-top:0; margin-bottom:18px; border-radius:14px; padding:20px 24px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <div id="ca-banner-icon" style="font-size:14px; font-weight:700; color:#fff; letter-spacing:0.5px;"><i class="fa-solid fa-circle-check"></i> &nbsp;Decision</div>
+                  <div id="ca-banner-decision" style="font-family:'DM Serif Display',serif; font-size:26px; color:#fff; margin-top:4px;">--</div>
+                </div>
+                <div id="ca-banner-range" style="font-size:12px; color:rgba(255,255,255,0.8); text-align:right;">--</div>
+              </div>
+            </div>
+            <!-- Stats row -->
+            <div id="ca-stats-row" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:18px;">
+              <div id="ca-stat-status" style="border-radius:12px; padding:16px; border:1px solid #bbf7d0; background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#166534; margin-bottom:6px;">Status</div>
+                <div style="font-size:14px; font-weight:700;" id="ca-r-status">--</div>
+              </div>
+              <div id="ca-stat-score" style="border-radius:12px; padding:16px; border:1px solid #bfdbfe; background:linear-gradient(135deg,#eff6ff,#dbeafe);">
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#1e40af; margin-bottom:6px;">Worthiness</div>
+                <div style="font-family:'DM Serif Display',serif; font-size:22px; color:#1e3a5f;" id="ca-r-score">--</div>
+              </div>
+              <div id="ca-stat-obligation" style="border-radius:12px; padding:16px; border:1px solid #fde68a; background:linear-gradient(135deg,#fffbeb,#fef3c7);">
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#92400e; margin-bottom:6px;">Obligation</div>
+                <div style="font-family:'DM Serif Display',serif; font-size:22px; color:#78350f;" id="ca-r-obligation">--</div>
+              </div>
+              <div id="ca-stat-sanction" style="border-radius:12px; padding:16px; border:1px solid #c4b5fd; background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#5b21b6; margin-bottom:6px;">Sanction %</div>
+                <div style="font-family:'DM Serif Display',serif; font-size:22px; color:#4c1d95;" id="ca-r-pct">--</div>
+              </div>
+            </div>
+            <!-- Document Readiness -->
+            <div id="ca-doc-readiness" style="display:none; padding:14px 16px; background:#fdfcfa; border:1px solid var(--border); border-radius:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <span style="font-size:12px; font-weight:700; color:var(--ink);"><i class="fa-solid fa-clipboard-check" style="color:var(--primary);margin-right:6px;"></i> Documents</span>
+                <span id="ca-doc-score" style="font-size:12px; font-weight:700;"></span>
+              </div>
+              <div style="height:5px;background:#e8e4de;border-radius:3px;overflow:hidden;margin-bottom:10px;"><div id="ca-doc-bar" style="height:100%;border-radius:3px;transition:width 0.5s ease;"></div></div>
+              <div id="ca-doc-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:6px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Customer Behavior ═══════════ -->
+    <div class="page" id="page-customer-behavior">
+      <div class="page-header">
+        <h2>Customer Behavior</h2>
+        <p>Search customer payment records, run queries, and upload data files</p>
+      </div>
+      <div style="max-width:1100px;">
+
+        <!-- Active Databases -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+          <span style="font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--ink-light);">Active Databases:</span>
+          <div id="ci-databases" style="display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="color:#999; font-size:12px;">Loading...</span>
+          </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title"><div class="icon" style="background:#eef2ff;"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue);"></i></div> Search Records</div>
+          <div style="display:grid; grid-template-columns:1fr 160px auto; gap:14px; align-items:end;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Search Term</label>
+              <input type="text" id="ci-search-input" placeholder="Enter PAN, Name, or Mobile..." />
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Search By</label>
+              <select id="ci-search-type">
+                <option value="pan">PAN Number</option>
+                <option value="name">Customer Name</option>
+                <option value="mobile">Mobile Number</option>
+              </select>
+            </div>
+            <button class="btn btn-blue" style="height:42px; width:120px; margin-top:0;" onclick="ciSearch()">
+              <i class="fa-solid fa-magnifying-glass btn-icon"></i> Search
+            </button>
+          </div>
+          <div id="behavior-score-result" style="margin-top:16px;"></div>
+          <div id="ci-search-result" style="margin-top:16px;"></div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="card">
+          <div class="card-title" style="cursor:pointer;" onclick="document.getElementById('ci-upload-body').style.display = document.getElementById('ci-upload-body').style.display==='none'?'block':'none'">
+            <div class="icon" style="background:#f0fdf4;"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--accent2);"></i></div> Upload Data Files
+            <i class="fa-solid fa-chevron-down" style="margin-left:auto; color:var(--ink-light); font-size:12px;"></i>
+          </div>
+          <div id="ci-upload-body" style="display:none;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px;">
+              <div class="field" style="margin-bottom:0;">
+                <label>Disbursed File (CSV/Excel)</label>
+                <input type="file" id="ci-file-disbursed" accept=".csv,.xlsx,.xls" style="font-size:13px;" />
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Collection File (CSV/Excel)</label>
+                <input type="file" id="ci-file-collection" accept=".csv,.xlsx,.xls" style="font-size:13px;" />
+              </div>
+            </div>
+            <button class="btn btn-green" style="width:180px;" onclick="ciUpload()"><i class="fa-solid fa-cloud-arrow-up btn-icon"></i> Process Files</button>
+            <div id="ci-upload-result" style="margin-top:12px;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Settings ═══════════ -->
+    <div class="page" id="page-settings">
+      <div class="page-header"><h2>Settings</h2><p>Application configuration</p></div>
+      <div class="card" style="max-width:500px;">
+        <div class="card-title"><div class="icon"><i class="fa-solid fa-gear"></i></div> Configuration</div>
+        <div class="info-row"><span class="il">API Base URL</span><span class="iv" style="font-size:11px;">goodskill.fiulive.finfactor.co.in</span></div>
+        <div class="info-row"><span class="il">Version</span><span class="iv">V2</span></div>
+        <div class="info-row"><span class="il">Channel</span><span class="iv">finsense</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Globals ──
+let AA = { token: '', consentHandle: '', consentId: '', custId: '', sessionId: '', csCurrentStep: 1, fiCurrentStep: 1 };
+let fetchedAccounts = [];
+const fmt = n => '\u20B9' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function formatIndianComma(el) {
+  const pos = el.selectionStart;
+  const oldLen = el.value.length;
+  const raw = el.value.replace(/[^0-9]/g, '');
+  if (!raw) { el.value = ''; return; }
+  el.value = Number(raw).toLocaleString('en-IN');
+  const newLen = el.value.length;
+  const newPos = Math.max(0, pos + (newLen - oldLen));
+  el.setSelectionRange(newPos, newPos);
+}
+
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+
+// Default FI date range: last 6 months
+(function() {
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const fromDate = new Date(yesterday.getFullYear(), yesterday.getMonth() - 5, yesterday.getDate() - 26);
+  const toISO = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  document.getElementById('fi-dateTo').value = toISO(yesterday);
+  document.getElementById('fi-dateFrom').value = toISO(fromDate);
+})();
+
+// ── Navigation ──
+function showPage(pageId, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  if (pageId === 'fidata') updateFiAutoFill();
+  if (pageId === 'analysis') initAnalysis();
+  if (pageId === 'customer-behavior') initCustomerBehavior();
+}
+
+// ── Sanitization helper (prevent XSS in innerHTML) ──
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// ── Copy helpers ──
+function copyText(el) {
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const orig = el.textContent;
+    el.textContent = 'Copied!';
+    setTimeout(() => el.textContent = orig, 1000);
+  });
+}
+function copyRedirectUrl() {
+  const url = document.getElementById('cs-redirectUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById('cs-redirectUrl');
+    const orig = el.textContent;
+    el.textContent = 'Copied!';
+    setTimeout(() => el.textContent = orig, 1000);
+  });
+}
+
+// ── API helper ──
+async function apiPost(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
+
+function setLoading(btn, loading) {
+  if (loading) {
+    btn._origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Loading...';
+  } else {
+    btn.innerHTML = btn._origHtml;
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════
+// CONSENT FLOW
+// ══════════════════════════════════════════
+
+function csGoStep(n) {
+  AA.csCurrentStep = n;
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('cs-step-' + i).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+    document.getElementById('cs-content-' + i).className = 'aa-step-content' + (i === n ? ' active' : '');
+  }
+}
+function csStepClick(n) {
+  if (n < (AA.csCurrentStep || 1)) csGoStep(n);
+}
+
+async function csLogin() {
+  const btn = document.getElementById('cs-loginBtn');
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/login', {});
+    document.getElementById('cs-loginResult').style.display = 'block';
+    document.getElementById('cs-loginLog').textContent = JSON.stringify(r.data, null, 2);
+    if (r.ok && r.data.body && r.data.body.token) {
+      AA.token = r.data.body.token;
+      document.getElementById('cs-loginStatus').innerHTML = '<span class="status-badge active"><i class="fa-solid fa-check"></i> Success</span>';
+      document.getElementById('cs-token').textContent = AA.token.substring(0, 50) + '...';
+      document.getElementById('fi-token').value = AA.token;
+      document.getElementById('cs-nextStep2').style.display = '';
+    } else {
+      document.getElementById('cs-loginStatus').innerHTML = '<span class="status-badge failed"><i class="fa-solid fa-xmark"></i> Failed</span>';
+      document.getElementById('cs-token').textContent = r.data.error || 'Check response';
+    }
+  } catch (e) {
+    alert('Connection error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+async function csCreateConsent() {
+  const btn = document.getElementById('cs-consentBtn');
+  const custId = document.getElementById('cs-custId').value;
+  if (!custId) { alert('Please enter the customer mobile number'); return; }
+  AA.custId = custId;
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/consent-request-plus', { token: AA.token, custId });
+    document.getElementById('cs-consentResult').style.display = 'block';
+    document.getElementById('cs-consentLog').textContent = JSON.stringify(r.data, null, 2);
+    const body = r.data.body || r.data;
+    const handle = body.consentHandle || body.ConsentHandle || '';
+    const redirect = body.url || body.redirectUrl || body.RedirectUrl || '';
+    if (handle) {
+      AA.consentHandle = handle;
+      document.getElementById('cs-consentHandle').textContent = handle;
+      if (redirect) {
+        document.getElementById('cs-redirectBox').style.display = 'block';
+        document.getElementById('cs-redirectUrl').textContent = redirect;
+        document.getElementById('cs-redirectLink').href = redirect;
+      }
+      document.getElementById('cs-statusHandle').value = handle;
+      document.getElementById('cs-statusCustId').value = custId;
+      document.getElementById('fi-custId').value = custId;
+      document.getElementById('fi-consentHandleId').value = handle;
+      document.getElementById('cs-nextStep3').style.display = '';
+    } else {
+      document.getElementById('cs-consentHandle').textContent = 'Error - check log';
+    }
+  } catch (e) {
+    alert('Connection error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+async function csCheckStatus() {
+  const btn = document.getElementById('cs-statusBtn');
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/consent-status', {
+      token: AA.token,
+      consentHandle: document.getElementById('cs-statusHandle').value,
+      custId: document.getElementById('cs-statusCustId').value
+    });
+    document.getElementById('cs-statusResult').style.display = 'block';
+    document.getElementById('cs-statusLog').textContent = JSON.stringify(r.data, null, 2);
+    const body = r.data.body || r.data;
+    const status = body.consentStatus || body.ConsentStatus || body.status || 'UNKNOWN';
+    const consentId = body.consentId || body.ConsentId || '';
+    const badgeClass = status === 'ACTIVE' || status === 'APPROVED' ? 'active' : status === 'PENDING' ? 'pending' : status === 'READY' ? 'ready' : 'failed';
+    document.getElementById('cs-consentStatus').innerHTML = '<span class="status-badge ' + badgeClass + '">' + status + '</span>';
+    document.getElementById('cs-consentId').textContent = consentId || 'N/A';
+    if (consentId) {
+      AA.consentId = consentId;
+      document.getElementById('fi-consentId').value = consentId;
+    }
+    // Show approved message if status is ACTIVE/APPROVED
+    if (status === 'ACTIVE' || status === 'APPROVED') {
+      document.getElementById('cs-approvedMsg').style.display = 'block';
+      // Update FI Data page auto-fill indicator
+      updateFiAutoFill();
+    }
+  } catch (e) {
+    alert('Connection error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+function updateFiAutoFill() {
+  const token = document.getElementById('fi-token').value;
+  const custId = document.getElementById('fi-custId').value;
+  const handle = document.getElementById('fi-consentHandleId').value;
+  const consentId = document.getElementById('fi-consentId').value;
+  if (token && custId && handle && consentId) {
+    document.getElementById('fi-autoFillStatus').style.display = 'block';
+    document.getElementById('fi-noAutoFill').style.display = 'none';
+    document.getElementById('fi-autoFillInfo').textContent = 'Customer ' + custId + ' (approved)';
+  }
+}
+
+// ══════════════════════════════════════════
+// FI DATA
+// ══════════════════════════════════════════
+
+function fiGoStep(n) {
+  AA.fiCurrentStep = n;
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('fi-step-' + i).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+    document.getElementById('fi-content-' + i).className = 'aa-step-content' + (i === n ? ' active' : '');
+  }
+}
+function fiStepClick(n) {
+  if (n < (AA.fiCurrentStep || 1)) fiGoStep(n);
+}
+
+async function fiRequest() {
+  const btn = document.getElementById('fi-reqBtn');
+  const token = document.getElementById('fi-token').value;
+  const custId = document.getElementById('fi-custId').value;
+  const consentHandleId = document.getElementById('fi-consentHandleId').value;
+  const consentId = document.getElementById('fi-consentId').value;
+  const dateFrom = document.getElementById('fi-dateFrom').value;
+  const dateTo = document.getElementById('fi-dateTo').value;
+  if (!token || !custId || !consentHandleId || !consentId || !dateFrom || !dateTo) { alert('Please fill in all fields'); return; }
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/fi-request', {
+      token, custId, consentHandleId, consentId,
+      dateTimeRangeFrom: new Date(dateFrom).toISOString(),
+      dateTimeRangeTo: new Date(dateTo).toISOString()
+    });
+    document.getElementById('fi-reqResult').style.display = 'block';
+    document.getElementById('fi-reqLog').textContent = JSON.stringify(r.data, null, 2);
+    const body = r.data.body || r.data;
+    const sessionId = body.sessionId || body.SessionId || '';
+    document.getElementById('fi-sessionId').textContent = sessionId || 'Error';
+    if (sessionId) {
+      AA.sessionId = sessionId;
+      document.getElementById('fi-statusSessionId').value = sessionId;
+      document.getElementById('fi-nextStep2').style.display = '';
+    }
+  } catch (e) {
+    alert('Connection error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+async function fiStatus() {
+  const btn = document.getElementById('fi-statusBtn');
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/fi-status', {
+      token: document.getElementById('fi-token').value || AA.token,
+      consentId: document.getElementById('fi-consentId').value || AA.consentId,
+      sessionId: document.getElementById('fi-statusSessionId').value || AA.sessionId,
+      consentHandleId: document.getElementById('fi-consentHandleId').value || AA.consentHandle,
+      custId: document.getElementById('fi-custId').value || AA.custId
+    });
+    document.getElementById('fi-statusResult').style.display = 'block';
+    document.getElementById('fi-statusLog').textContent = JSON.stringify(r.data, null, 2);
+    const body = r.data.body || r.data;
+    const accounts = body.accounts || (Array.isArray(body.fiRequestStatus) ? body.fiRequestStatus : []) || (Array.isArray(body.FIRequestStatus) ? body.FIRequestStatus : []);
+    let html = '';
+    if (Array.isArray(accounts) && accounts.length) {
+      accounts.forEach((acc, i) => {
+        const st = acc.status || acc.Status || 'UNKNOWN';
+        const cls = st === 'READY' ? 'ready' : st === 'ACTIVE' ? 'active' : st === 'PENDING' ? 'pending' : 'failed';
+        const friendlyStatus = st === 'READY' ? 'Ready to download' : st === 'PENDING' ? 'Bank is preparing...' : st === 'ACTIVE' ? 'Active' : st;
+        const bank = acc.fipId || acc.FipId || 'Bank';
+        html += '<div class="info-row"><span class="il">' + bank + ' - Account ' + (i+1) + '</span><span class="status-badge ' + cls + '">' + friendlyStatus + '</span></div>';
+      });
+    }
+    const overallStatus = body.fiRequestStatus || body.FIRequestStatus || '';
+    if (!html && typeof overallStatus === 'string' && overallStatus) {
+      const cls = overallStatus === 'READY' ? 'ready' : overallStatus === 'PENDING' ? 'pending' : 'failed';
+      const friendly = overallStatus === 'READY' ? 'Ready to download' : overallStatus === 'PENDING' ? 'Bank is preparing...' : overallStatus;
+      html = '<div class="info-row"><span class="il">All Accounts</span><span class="status-badge ' + cls + '">' + friendly + '</span></div>';
+    }
+    document.getElementById('fi-statusAccounts').innerHTML = html || '<div class="info-row"><span class="il">Status</span><span>' + (body.status || 'Check log') + '</span></div>';
+    const allReady = (Array.isArray(accounts) && accounts.length && accounts.every(a => (a.status || a.Status) === 'READY')) || overallStatus === 'READY';
+    if (allReady) {
+      document.getElementById('fi-nextStep3').style.display = '';
+    }
+  } catch (e) {
+    alert('Connection error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+async function fiFetch() {
+  const btn = document.getElementById('fi-fetchBtn');
+  setLoading(btn, true);
+  try {
+    const r = await apiPost('/api/fi-data-fetch', {
+      token: document.getElementById('fi-token').value || AA.token,
+      consentHandle: document.getElementById('fi-consentHandleId').value || AA.consentHandle,
+      sessionId: document.getElementById('fi-statusSessionId').value || AA.sessionId
+    });
+    if (!r.ok) {
+      const errMsg = r.data?.error || r.data?.errors?.[0]?.errorMsg || JSON.stringify(r.data);
+      alert('Error fetching data: ' + errMsg);
+      document.getElementById('fi-fetchResult').style.display = 'block';
+      document.getElementById('fi-accTabs').innerHTML = '';
+      document.getElementById('fi-accPanels').innerHTML = '<pre style="padding:20px;font-size:12px;max-height:400px;overflow:auto;">' + JSON.stringify(r.data, null, 2) + '</pre>';
+      setLoading(btn, false);
+      return;
+    }
+    const body = r.data.body || r.data;
+    let accounts = [];
+
+    // Format 1: body is an array with fiObjects (JSON format from Finsense)
+    if (Array.isArray(body)) {
+      body.forEach(item => {
+        const fiObjects = item.fiObjects || [];
+        const fiAccountInfo = item.fiAccountInfo || [];
+        fiObjects.forEach((fiObj, idx) => {
+          const accRef = fiAccountInfo[idx] || {};
+          const profile = fiObj.Profile || {};
+          const holders = profile.Holders || {};
+          const holder = holders.Holder || {};
+          const summary = fiObj.Summary || {};
+          const txnData = fiObj.Transactions || {};
+          const txnList = txnData.Transaction || [];
+          const acc = {
+            fipId: item.fipId || '',
+            linkRefNumber: accRef.linkRefNo || accRef.linkRefNumber || '',
+            maskedAccNumber: fiObj.maskedAccNumber || accRef.maskedAccNumber || summary.accountNumber || '',
+            accountType: fiObj.type || summary.accountType || 'deposit',
+            holderName: holder.name || '',
+            pan: holder.pan || '',
+            email: holder.email || '',
+            mobile: holder.mobile || '',
+            summary: summary,
+            transactions: Array.isArray(txnList) ? txnList : [txnList],
+            transactionCount: Array.isArray(txnList) ? txnList.length : 1
+          };
+          accounts.push(acc);
+        });
+      });
+    }
+    // Format 2: body.fiData with XML (legacy)
+    else {
+      const fiData = body.fiData || body.FIData || body.data || body.decryptedFI || [];
+      if (fiData && (!Array.isArray(fiData) || fiData.length > 0)) {
+        const parsed = await apiPost('/api/parse-fi-data', { fiData: Array.isArray(fiData) ? fiData : [fiData] });
+        accounts = parsed.data.accounts || [];
+      }
+    }
+
+    if (!accounts.length) {
+      document.getElementById('fi-fetchResult').style.display = 'block';
+      document.getElementById('fi-accTabs').innerHTML = '';
+      document.getElementById('fi-accPanels').innerHTML = '<div style="padding:20px;"><div style="color:#999;margin-bottom:12px;">No account data found. Raw:</div><pre style="font-size:12px;max-height:400px;overflow:auto;">' + JSON.stringify(r.data, null, 2) + '</pre></div>';
+      setLoading(btn, false);
+      return;
+    }
+    fetchedAccounts = accounts;
+    renderAccounts(accounts);
+    document.getElementById('fi-downloadBtn').style.display = '';
+    document.getElementById('fi-downloadAllBtn').style.display = accounts.length > 1 ? '' : 'none';
+    document.getElementById('fi-saveBtn').style.display = '';
+  } catch (e) {
+    alert('Error: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+function downloadOneCSV(acc, idx) {
+  const accName = acc.holderName || 'Account_' + (idx + 1);
+  const accNum = acc.maskedAccNumber || 'Unknown';
+  const rows = [];
+  rows.push(['Date', 'Narration', 'Type', 'Amount', 'Balance']);
+  if (acc.transactions && acc.transactions.length) {
+    acc.transactions.forEach(txn => {
+      const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
+      const narration = (txn.narration || txn.transactionNarration || txn.reference || '').replace(/"/g, '""');
+      const type = (txn.type || txn.txnType || '').toUpperCase();
+      const amount = txn.amount || txn.transactionAmount || '';
+      const balance = txn.currentBalance || txn.balance || '';
+      rows.push([date, '"' + narration + '"', type, amount, balance]);
+    });
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = accName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') + '_' + accNum + '_Statement.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function fiDownloadCSV() {
+  if (!fetchedAccounts.length) { alert('No data to download. View the statement first.'); return; }
+  // Find currently active tab index
+  const activeTab = document.querySelector('.acc-tab.active');
+  const idx = activeTab ? Array.from(document.querySelectorAll('.acc-tab')).indexOf(activeTab) : 0;
+  downloadOneCSV(fetchedAccounts[idx], idx);
+}
+
+function fiDownloadAllCSV() {
+  if (!fetchedAccounts.length) { alert('No data to download. View the statement first.'); return; }
+  let i = 0;
+  function next() {
+    if (i < fetchedAccounts.length) {
+      downloadOneCSV(fetchedAccounts[i], i);
+      i++;
+      setTimeout(next, 500);
+    }
+  }
+  next();
+}
+
+function renderAccounts(accounts) {
+  document.getElementById('fi-fetchResult').style.display = 'block';
+  const tabsEl = document.getElementById('fi-accTabs');
+  const panelsEl = document.getElementById('fi-accPanels');
+  let tabsHtml = '';
+  let panelsHtml = '';
+
+  accounts.forEach((acc, idx) => {
+    const accNum = esc(acc.maskedAccNumber || 'Account ' + (idx + 1));
+    const fip = esc(acc.fipId || '');
+    tabsHtml += '<div class="acc-tab' + (idx === 0 ? ' active' : '') + '" onclick="switchAccTab(' + idx + ')">' + accNum + '<span class="acc-tab-fip">' + fip + '</span></div>';
+
+    let panelHtml = '<div class="acc-panel' + (idx === 0 ? ' active' : '') + '" id="acc-panel-' + idx + '">';
+
+    // Account holder info
+    if (acc.holderName) {
+      panelHtml += '<div style="margin-bottom:20px;">';
+      panelHtml += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-light);font-weight:600;margin-bottom:8px;">Account Holder</div>';
+      panelHtml += '<div style="font-size:16px;font-weight:600;">' + esc(acc.holderName) + '</div>';
+      if (acc.pan) panelHtml += '<div style="font-size:12px;color:var(--ink-light);margin-top:2px;">PAN: ' + esc(acc.pan) + '</div>';
+      panelHtml += '</div>';
+    }
+
+    // Summary stats
+    if (acc.summary) {
+      const s = acc.summary;
+      panelHtml += '<div class="acc-summary-grid">';
+      if (s.currentBalance) panelHtml += '<div class="acc-stat"><div class="stat-label">Current Balance</div><div class="stat-value green">' + esc(fmt(s.currentBalance)) + '</div></div>';
+      if (s.openingBalance) panelHtml += '<div class="acc-stat"><div class="stat-label">Opening Balance</div><div class="stat-value">' + esc(fmt(s.openingBalance)) + '</div></div>';
+      if (s.branch) panelHtml += '<div class="acc-stat"><div class="stat-label">Branch</div><div class="stat-value" style="font-size:14px;">' + esc(s.branch) + '</div></div>';
+      if (s.ifscCode || s.ifsc) panelHtml += '<div class="acc-stat"><div class="stat-label">IFSC</div><div class="stat-value" style="font-size:14px;">' + esc(s.ifscCode || s.ifsc) + '</div></div>';
+      if (s.accountType || s.type) panelHtml += '<div class="acc-stat"><div class="stat-label">Account Type</div><div class="stat-value" style="font-size:14px;">' + esc(s.accountType || s.type || acc.accountType) + '</div></div>';
+      if (s.facility) panelHtml += '<div class="acc-stat"><div class="stat-label">Facility</div><div class="stat-value" style="font-size:14px;">' + esc(s.facility) + '</div></div>';
+      if (s.currentODLimit) panelHtml += '<div class="acc-stat"><div class="stat-label">OD Limit</div><div class="stat-value">' + esc(fmt(s.currentODLimit)) + '</div></div>';
+      if (s.drawingLimit) panelHtml += '<div class="acc-stat"><div class="stat-label">Drawing Limit</div><div class="stat-value">' + esc(fmt(s.drawingLimit)) + '</div></div>';
+      // Show any remaining summary fields
+      const shown = ['currentBalance','openingBalance','branch','ifscCode','ifsc','accountType','type','facility','currentODLimit','drawingLimit'];
+      Object.entries(s).forEach(([k,v]) => {
+        if (!shown.includes(k) && v) {
+          panelHtml += '<div class="acc-stat"><div class="stat-label">' + esc(k.replace(/([A-Z])/g, ' $1').trim()) + '</div><div class="stat-value" style="font-size:14px;">' + esc(v) + '</div></div>';
+        }
+      });
+      panelHtml += '</div>';
+    }
+
+    // Transactions
+    if (acc.transactions && acc.transactions.length) {
+      panelHtml += '<div class="txn-count-badge"><i class="fa-solid fa-list"></i> ' + acc.transactions.length + ' transactions</div>';
+      panelHtml += '<div class="txn-table-wrap"><table class="txn-table"><thead><tr>';
+      panelHtml += '<th>Date</th><th>Narration</th><th>Type</th><th style="text-align:right">Amount</th><th style="text-align:right">Balance</th>';
+      panelHtml += '</tr></thead><tbody>';
+      acc.transactions.forEach(txn => {
+        const type = esc((txn.type || txn.txnType || '').toUpperCase());
+        const cls = type === 'CREDIT' ? 'txn-type-credit' : 'txn-type-debit';
+        const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
+        const displayDate = date ? new Date(date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' }) : '';
+        const amount = txn.amount || txn.transactionAmount || '';
+        const balance = txn.currentBalance || txn.balance || '';
+        const narration = txn.narration || txn.transactionNarration || txn.reference || '';
+        panelHtml += '<tr>';
+        panelHtml += '<td style="white-space:nowrap;">' + esc(displayDate) + '</td>';
+        panelHtml += '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(narration) + '">' + esc(narration) + '</td>';
+        panelHtml += '<td><span class="' + cls + '">' + type + '</span></td>';
+        panelHtml += '<td class="txn-amount">' + (amount ? esc(fmt(amount)) : '') + '</td>';
+        panelHtml += '<td class="txn-balance">' + (balance ? esc(fmt(balance)) : '') + '</td>';
+        panelHtml += '</tr>';
+      });
+      panelHtml += '</tbody></table></div>';
+    } else if (!acc.error) {
+      panelHtml += '<div style="color:#999;text-align:center;padding:30px;">No transactions found for this account</div>';
+    }
+
+    if (acc.error) {
+      panelHtml += '<div style="color:var(--accent);padding:20px;text-align:center;">' + esc(acc.error) + '</div>';
+      if (acc.rawData) panelHtml += '<div class="response-log">' + esc(acc.rawData) + '</div>';
+    }
+
+    panelHtml += '</div>';
+    panelsHtml += panelHtml;
+  });
+
+  tabsEl.innerHTML = tabsHtml;
+  panelsEl.innerHTML = panelsHtml;
+}
+
+function switchAccTab(idx) {
+  document.querySelectorAll('.acc-tab').forEach((t, i) => t.className = 'acc-tab' + (i === idx ? ' active' : ''));
+  document.querySelectorAll('.acc-panel').forEach((p, i) => p.className = 'acc-panel' + (i === idx ? ' active' : ''));
+}
+
+// ══════════════════════════════════════════
+// STATEMENT ANALYSIS
+// ══════════════════════════════════════════
+
+function initAnalysis() {
+  if (!fetchedAccounts.length) {
+    document.getElementById('analysis-noData').style.display = '';
+    document.getElementById('analysis-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('analysis-noData').style.display = 'none';
+  document.getElementById('analysis-content').style.display = '';
+
+  if (fetchedAccounts.length > 1) {
+    document.getElementById('analysis-accSelect').style.display = '';
+    const picker = document.getElementById('analysis-accPicker');
+    picker.innerHTML = fetchedAccounts.map((a, i) =>
+      '<option value="' + i + '">' + (a.maskedAccNumber || 'Account ' + (i+1)) + ' (' + (a.fipId || '') + ')</option>'
+    ).join('');
+  } else {
+    document.getElementById('analysis-accSelect').style.display = 'none';
+  }
+  runAnalysis(0);
+}
+
+async function runAnalysis(idx) {
+  const acc = fetchedAccounts[parseInt(idx)];
+  if (!acc) return;
+  const txns = acc.transactions || [];
+
+  // Populate customer info banner
+  const custName = acc.holderName || acc.customer_name || '';
+  const custMobile = acc.mobile || '';
+  const custAcc = acc.maskedAccNumber || '';
+  const lastTxn = txns.length ? txns[txns.length - 1] : {};
+  const lastBalance = parseFloat(lastTxn.currentBalance || lastTxn.balance || lastTxn.Balance || 0);
+  const infoBanner = document.getElementById('analysis-customer-info');
+
+  if (custName || custMobile || custAcc) {
+    document.getElementById('analysis-cust-name').textContent = custName || 'Unknown';
+    document.getElementById('analysis-cust-mobile').innerHTML = custMobile ? '<i class="fa-solid fa-phone" style="margin-right:4px;"></i>' + custMobile : '';
+    document.getElementById('analysis-cust-acc').innerHTML = custAcc ? '<i class="fa-solid fa-building-columns" style="margin-right:4px;"></i>A/c ' + custAcc : '';
+    document.getElementById('analysis-cust-balance').textContent = fmt(lastBalance);
+    infoBanner.style.display = 'block';
+  } else {
+    infoBanner.style.display = 'none';
+  }
+
+  // Show loading state
+  document.getElementById('analysis-summary').innerHTML = '<div style="color:#999;text-align:center;padding:20px;">Analyzing transactions...</div>';
+
+  try {
+    const r = await apiPost('/api/analyze-statement', { transactions: txns });
+    if (!r.ok || !r.data.success) {
+      document.getElementById('analysis-summary').innerHTML = '<div style="color:var(--accent);padding:20px;">Analysis failed: ' + (r.data.error || 'Unknown error') + '</div>';
+      return;
+    }
+
+    const { salary, emi_loans: emiLoans, nach_bounce: nachBounce, frequent_transfers: freqTransfers, summary: s } = r.data;
+
+    // Summary cards
+    document.getElementById('analysis-summary').innerHTML =
+      '<div class="acc-stat"><div class="stat-label">Total Credits</div><div class="stat-value green">' + fmt(s.total_credits) + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + s.credit_count + ' transactions</div></div>' +
+      '<div class="acc-stat"><div class="stat-label">Total Debits</div><div class="stat-value red">' + fmt(s.total_debits) + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + s.debit_count + ' transactions</div></div>' +
+      '<div class="acc-stat"><div class="stat-label">Salary Income</div><div class="stat-value green">' + fmt(s.total_salary) + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + s.salary_count + ' credits</div></div>' +
+      '<div class="acc-stat"><div class="stat-label">EMI / Loans</div><div class="stat-value red">' + fmt(s.total_emi_loans) + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + s.emi_loans_count + ' debits</div></div>' +
+      '<div class="acc-stat"><div class="stat-label">NACH Bounces</div><div class="stat-value' + (s.nach_bounce_count ? ' red' : '') + '">' + s.nach_bounce_count + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + (s.nach_bounce_count ? 'Alert' : 'None found') + '</div></div>' +
+      '<div class="acc-stat"><div class="stat-label">Frequent Transfers</div><div class="stat-value' + (s.frequent_transfers_count ? ' red' : '') + '">' + s.frequent_transfers_count + '</div><div style="font-size:11px;color:var(--ink-light);margin-top:4px;">' + (s.frequent_transfers_count ? 'Flag' : 'None found') + '</div></div>';
+
+    // Render tables
+    document.getElementById('analysis-salary').innerHTML = renderAnalysisTable(salary, 'CREDIT', 'No salary credits detected');
+    document.getElementById('analysis-emi').innerHTML = renderAnalysisTable(emiLoans, 'DEBIT', 'No EMI / loan payments detected');
+    document.getElementById('analysis-bounce').innerHTML = renderAnalysisTable(nachBounce, 'DEBIT', 'No NACH bounces found - Good!', true);
+    document.getElementById('analysis-freq').innerHTML = renderFrequentTransfers(freqTransfers);
+
+  } catch (e) {
+    document.getElementById('analysis-summary').innerHTML = '<div style="color:var(--accent);padding:20px;">Analysis error: ' + e.message + '</div>';
+  }
+}
+
+function renderAnalysisTable(items, type, emptyMsg, isBounce) {
+  if (!items.length) return '<div style="color:#999;text-align:center;padding:20px;font-size:13px;">' + emptyMsg + '</div>';
+  const cls = type === 'CREDIT' ? 'txn-type-credit' : 'txn-type-debit';
+  let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>Date</th><th>Narration</th><th style="text-align:right">Amount</th></tr></thead><tbody>';
+  items.forEach(t => {
+    const d = t.date ? new Date(t.date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'2-digit'}) : '';
+    html += '<tr><td style="white-space:nowrap;">' + d + '</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (t.narration||'').replace(/"/g,'&quot;') + '">' + (t.narration||'') + '</td><td class="txn-amount ' + cls + '">' + fmt(t.amount) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderFrequentTransfers(items) {
+  if (!items || !items.length) return '<div style="color:#999;text-align:center;padding:20px;font-size:13px;">No frequent transfers detected</div>';
+  let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>UPI / Account</th><th style="text-align:center">Transfers</th><th style="text-align:right">Total Sent</th><th style="text-align:right">% of Salary</th></tr></thead><tbody>';
+  items.forEach(t => {
+    const pctColor = t.pct_of_salary >= 80 ? 'var(--accent)' : t.pct_of_salary >= 50 ? 'var(--amber)' : '#555';
+    html += '<tr><td style="font-family:monospace;font-size:12px;">' + (t.destination||'') + '</td><td style="text-align:center;">' + t.count + 'x</td><td class="txn-amount txn-type-debit">' + fmt(t.total) + '</td><td style="text-align:right;font-weight:600;color:' + pctColor + ';">' + t.pct_of_salary + '%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// ══════════════════════════════════════════
+// SAVED STATEMENTS (search, save, load)
+// ══════════════════════════════════════════
+
+async function saveStatement() {
+  if (!fetchedAccounts.length) { alert('No statement data to save. View the statement first.'); return; }
+  const btn = document.getElementById('fi-saveBtn');
+  setLoading(btn, true);
+  try {
+    let saved = 0;
+    for (const acc of fetchedAccounts) {
+      const r = await apiPost('/api/save-statement', { account: acc });
+      if (r.ok && r.data.success) saved++;
+    }
+    alert(saved + ' statement(s) saved successfully!');
+  } catch (e) {
+    alert('Error saving: ' + e.message);
+  } finally { setLoading(btn, false); }
+}
+
+async function searchSavedStatements() {
+  const input = document.getElementById('stmt-search-input').value.trim();
+  const type = document.getElementById('stmt-search-type').value;
+  if (!input) { alert('Enter a search term'); return; }
+
+  const resultsEl = document.getElementById('stmt-search-results');
+  resultsEl.innerHTML = '<div style="color:#999; padding:10px;">Searching...</div>';
+
+  try {
+    const payload = {};
+    payload[type] = input;
+    const r = await apiPost('/api/search-statements', payload);
+    if (!r.ok || !r.data.success) {
+      resultsEl.innerHTML = '<div style="color:var(--accent); padding:10px;">Error: ' + (r.data.error || 'Search failed') + '</div>';
+      return;
+    }
+    const results = r.data.results || [];
+    if (!results.length) {
+      resultsEl.innerHTML = '<div style="color:#999; text-align:center; padding:20px;">No saved statements found.</div>';
+      return;
+    }
+    let html = '<div style="max-height:320px; overflow-y:auto; overflow-x:auto; border:1px solid var(--border); border-radius:10px;"><table class="txn-table" style="margin:0; min-width:800px;"><thead style="position:sticky; top:0; z-index:1;"><tr>' +
+      '<th>Customer</th><th>Mobile</th><th>Bank</th><th>Account</th><th>Period</th><th style="text-align:center;">Txns</th><th>Saved</th><th>Action</th>' +
+      '</tr></thead><tbody>';
+    results.forEach(r => {
+      const acc = r.account_number || '-';
+      const accShort = acc.length > 8 ? '••' + acc.slice(-4) : acc;
+      const savedDate = (r.created_at || '-').split(' ')[0];
+      html += '<tr>' +
+        '<td style="font-weight:600;">' + (r.customer_name || '-') + '</td>' +
+        '<td>' + (r.mobile || '-') + '</td>' +
+        '<td>' + (r.bank_name || '-') + '</td>' +
+        '<td title="' + acc + '">' + accShort + '</td>' +
+        '<td style="white-space:nowrap;">' + (r.statement_from || '') + ' to ' + (r.statement_to || '') + '</td>' +
+        '<td style="text-align:center;">' + (r.transaction_count || 0) + '</td>' +
+        '<td style="white-space:nowrap;">' + savedDate + '</td>' +
+        '<td><div style="display:flex;gap:6px;white-space:nowrap;">' +
+          '<button class="btn btn-blue" style="padding:4px 10px; font-size:11px; height:auto;" onclick="loadSavedStatement(' + r.id + ')"><i class="fa-solid fa-eye"></i> View</button>' +
+          '<button class="btn btn-green" style="padding:4px 8px; font-size:11px; height:auto;" onclick="downloadSavedStatement(' + r.id + ')"><i class="fa-solid fa-download"></i></button>' +
+          '<button class="btn btn-amber" style="padding:4px 8px; font-size:11px; height:auto;" onclick="deleteSavedStatement(' + r.id + ')"><i class="fa-solid fa-trash"></i></button>' +
+        '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+    resultsEl.innerHTML = html;
+  } catch (e) {
+    resultsEl.innerHTML = '<div style="color:var(--accent); padding:10px;">Error: ' + e.message + '</div>';
+  }
+}
+
+async function downloadSavedStatement(id) {
+  try {
+    const r = await fetch('/api/get-statement/' + id);
+    const data = await r.json();
+    if (!data.success || !data.statement) { alert('Statement not found'); return; }
+    const stmt = data.statement;
+    const txns = stmt.transactions || [];
+    if (!txns.length) { alert('No transactions to download'); return; }
+    // Build CSV from transactions
+    const allKeys = new Set();
+    txns.forEach(t => Object.keys(t).forEach(k => allKeys.add(k)));
+    const headers = Array.from(allKeys);
+    let csv = headers.map(h => '"' + h + '"').join(',') + '\n';
+    txns.forEach(t => {
+      csv += headers.map(h => '"' + String(t[h] || '').replace(/"/g, '""') + '"').join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const name = (stmt.customer_name || 'Statement').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+    const acc = (stmt.account_number || '').replace(/[^a-zA-Z0-9]/g, '');
+    a.download = name + '_' + acc + '_Statement.csv';
+    a.click();
+  } catch (e) {
+    alert('Error downloading: ' + e.message);
+  }
+}
+
+async function loadSavedStatement(id) {
+  try {
+    const r = await fetch('/api/get-statement/' + id);
+    const data = await r.json();
+    if (!data.success || !data.statement) { alert('Statement not found'); return; }
+
+    const stmt = data.statement;
+    // Build account object matching fetchedAccounts format
+    const acc = {
+      fipId: stmt.bank_name || '',
+      maskedAccNumber: stmt.account_number || '',
+      accountType: stmt.account_type || '',
+      holderName: stmt.customer_name || '',
+      mobile: stmt.mobile || '',
+      summary: stmt.summary || {},
+      transactions: stmt.transactions || [],
+      transactionCount: (stmt.transactions || []).length
+    };
+
+    fetchedAccounts = [acc];
+    // Show analysis
+    document.getElementById('analysis-noData').style.display = 'none';
+    document.getElementById('analysis-content').style.display = '';
+    document.getElementById('analysis-accSelect').style.display = 'none';
+    runAnalysis(0);
+  } catch (e) {
+    alert('Error loading statement: ' + e.message);
+  }
+}
+
+async function deleteSavedStatement(id) {
+  if (!confirm('Delete this saved statement?')) return;
+  try {
+    const r = await fetch('/api/delete-statement/' + id, { method: 'DELETE' });
+    const data = await r.json();
+    if (data.success) {
+      searchSavedStatements(); // Refresh results
+    } else {
+      alert('Error: ' + (data.error || 'Delete failed'));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// LOAN CALCULATOR (unchanged)
+// ══════════════════════════════════════════
+
+function updateFeeFromSlider() {
+  const loan = parseFloat(document.getElementById('loanAmount').value) || 0;
+  const pct = parseFloat(document.getElementById('feeSlider').value);
+  const fee = loan > 0 ? (loan * pct / 100) : 0;
+  document.getElementById('processingFee').value = fee.toFixed(2);
+  document.getElementById('feePercLabel').textContent = pct;
+  document.getElementById('feeAmtLabel').textContent = loan > 0 ? new Intl.NumberFormat('en-IN').format(Math.round(fee)) : '0';
+}
+document.getElementById('loanAmount').addEventListener('input', updateFeeFromSlider);
+document.getElementById('feeSlider').addEventListener('input', updateFeeFromSlider);
+document.getElementById('startDate').addEventListener('change', updateDays);
+document.getElementById('endDate').addEventListener('change', updateDays);
+
+function updateDays() {
+  const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
+  const badge = document.getElementById('daysBadge');
+  if (s && e) {
+    const days = Math.round((new Date(e) - new Date(s)) / 86400000);
+    badge.textContent = days > 0 ? days + ' days' : 'End date must be after start date';
+    badge.style.color = days > 0 ? '' : '#c84b2f';
+    badge.style.display = 'inline-block';
+  }
+}
+
+async function calculate() {
+  const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  let interestRate = parseFloat(document.getElementById('interestRate').value);
+  const processingFee = parseFloat(document.getElementById('processingFee').value);
+  if (!loanAmount || !startDate || !endDate || !interestRate || isNaN(processingFee)) { alert('Please fill in all fields.'); return; }
+  if (interestRate < 0.5) { interestRate = 0.5; document.getElementById('interestRate').value = '0.5'; }
+  if (interestRate > 1) { interestRate = 1; document.getElementById('interestRate').value = '1'; }
+
+  const btn = document.querySelector('#page-loan-calculator .btn');
+  setLoading(btn, true);
+  document.getElementById('placeholder').style.display = 'none';
+  const rows = document.getElementById('resultRows');
+  rows.classList.add('visible');
+  document.querySelectorAll('.result-row .value').forEach(el => el.innerHTML = '<span class="skeleton"></span>');
+  document.querySelectorAll('.result-row').forEach(r => r.classList.remove('row-visible'));
+
+  try {
+    const res = await fetch('/calculate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ loan_amount:loanAmount, start_date:startDate, end_date:endDate, interest_rate:interestRate, processing_fee:processingFee }) });
+    if (!res.ok) { const err = await res.json(); alert('Error: ' + (err.detail || 'Something went wrong')); return; }
+    const d = await res.json();
+    document.getElementById('r-loan').textContent = fmt(d.loan_amount);
+    document.getElementById('r-disbursed').textContent = fmt(d.disbursed_amount);
+    document.getElementById('r-disbursed2').textContent = fmt(d.disbursed_amount);
+    document.getElementById('r-days').textContent = d.days + ' days';
+    document.getElementById('r-days2').textContent = d.days;
+    document.getElementById('r-rate').textContent = d.interest_rate + '% p.d.';
+    document.getElementById('r-interest').textContent = fmt(d.interest_amount);
+    document.getElementById('r-pfee').textContent = fmt(d.processing_fee);
+    document.getElementById('r-gst').textContent = fmt(d.gst_on_processing_fee);
+    document.getElementById('r-totalfees').textContent = fmt(d.total_fees);
+    document.getElementById('r-total').textContent = fmt(d.total_repayment);
+    document.querySelectorAll('.result-row').forEach((row, i) => { setTimeout(() => row.classList.add('row-visible'), i * 60); });
+    document.getElementById('totalBanner').classList.add('visible', 'animate');
+  } catch (err) {
+    alert('Could not connect to server.');
+  } finally { setLoading(btn, false); }
+}
+
+// ══════════════════════════════════════════
+// CREDIT ANALYSER
+// ══════════════════════════════════════════
+
+async function analyzeCredit() {
+  const income = parseInt(document.getElementById('ca-income').value.replace(/,/g, ''));
+  const obligations = parseInt(document.getElementById('ca-obligations').value.replace(/,/g, ''));
+  const cibil = parseInt(document.getElementById('ca-cibil').value);
+  const overdue = parseInt(document.getElementById('ca-overdue').value);
+  const emiLoan = parseInt(document.getElementById('ca-emi').value);
+  const payday = parseInt(document.getElementById('ca-payday').value);
+  const residence = document.getElementById('ca-residence').value;
+  const enach = parseInt(document.getElementById('ca-enach').value);
+
+  if (isNaN(income) || isNaN(obligations) || isNaN(cibil) || isNaN(overdue) || isNaN(emiLoan) || isNaN(payday) || isNaN(enach)) {
+    alert('Please fill in all fields.'); return;
+  }
+
+  const btn = document.querySelector('#page-credit-analyser .btn');
+  setLoading(btn, true);
+  document.getElementById('ca-placeholder').style.display = 'none';
+  const results = document.getElementById('ca-results');
+  results.style.display = 'block';
+  results.classList.add('visible');
+  results.querySelectorAll('.stat-value').forEach(el => el.textContent = '--');
+  document.getElementById('ca-banner').classList.remove('visible', 'animate');
+  document.getElementById('ca-banner').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/analyze-credit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        monthly_income: income,
+        fixed_obligations: obligations,
+        cibil: cibil,
+        cibil_overdue: overdue,
+        emi_loan: emiLoan,
+        payday_running: payday,
+        residence_type: residence,
+        enach_bounce: enach,
+        docs_collected: Object.values(loadDocChecklist()).filter(Boolean).length
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Error: ' + (err.error || 'Something went wrong'));
+      return;
+    }
+
+    const d = await res.json();
+    const approved = d.approval_status === 'Can be Approved';
+
+    const statusCard = document.getElementById('ca-stat-status');
+    if (approved) {
+      statusCard.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+      statusCard.style.borderColor = '#bbf7d0';
+      statusCard.querySelector('div').style.color = '#166534';
+      document.getElementById('ca-r-status').innerHTML = '<span style="color:#059669;font-weight:700;"><i class="fa-solid fa-circle-check"></i> Approved</span>';
+    } else {
+      statusCard.style.background = 'linear-gradient(135deg,#fef2f2,#fecaca)';
+      statusCard.style.borderColor = '#fca5a5';
+      statusCard.querySelector('div').style.color = '#991b1b';
+      document.getElementById('ca-r-status').innerHTML = '<span style="color:#dc2626;font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> Rejected</span>';
+    }
+    document.getElementById('ca-r-score').textContent = d.customer_worthiness + ' / ' + d.max_score;
+    document.getElementById('ca-r-obligation').textContent = d.obligation_ratio + '%';
+    document.getElementById('ca-r-pct').textContent = d.sanction_percentage.min + '% - ' + d.sanction_percentage.max + '%';
+
+    const banner = document.getElementById('ca-banner');
+    banner.style.display = 'block';
+    const bannerIcon = document.getElementById('ca-banner-icon');
+    const bannerDecision = document.getElementById('ca-banner-decision');
+    const bannerRange = document.getElementById('ca-banner-range');
+
+    bannerIcon.style.color = '#fff';
+    bannerRange.style.color = 'rgba(255,255,255,0.85)';
+
+    if (approved) {
+      bannerIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i> &nbsp;Approved';
+      bannerDecision.textContent = d.sanction_amount_range;
+      bannerRange.textContent = 'Sanction range at ' + d.sanction_percentage.min + '% - ' + d.sanction_percentage.max + '% of post-obligation income';
+      banner.style.background = 'linear-gradient(135deg, #065f46, #059669)';
+    } else {
+      bannerIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> &nbsp;Not Approved';
+      bannerDecision.textContent = 'Score: ' + d.customer_worthiness + '/10';
+      if (d.rejection_reasons && d.rejection_reasons.length) {
+        bannerRange.innerHTML = '<strong>Rejected because:</strong> ' + d.rejection_reasons.join(' &bull; ');
+      } else {
+        bannerRange.textContent = 'Does not meet eligibility criteria';
+      }
+      banner.style.background = 'linear-gradient(135deg, #991b1b, #dc2626)';
+    }
+    setTimeout(() => banner.classList.add('visible', 'animate'), 300);
+
+    // Show document readiness from checklist
+    showDocReadiness();
+
+  } catch (err) {
+    alert('Could not connect to server. Make sure the credit analyser API is running.');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+function showDocReadiness() {
+  const checkKey = 'fintools_doc_checklist';
+  const items = [
+    'Aadhaar Card', 'PAN Card', 'Address Proof', 'Bank Statement', 'Salary Slip',
+    'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate'
+  ];
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(checkKey)) || {}; } catch {}
+
+  const collected = items.filter(i => state[i]);
+  const pending = items.filter(i => !state[i]);
+  const total = items.length;
+  const pct = Math.round(collected.length / total * 100);
+
+  const container = document.getElementById('ca-doc-readiness');
+  container.style.display = '';
+
+  const scoreEl = document.getElementById('ca-doc-score');
+  const barEl = document.getElementById('ca-doc-bar');
+  const listEl = document.getElementById('ca-doc-list');
+
+  const color = pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+  scoreEl.textContent = collected.length + '/' + total + ' collected';
+  scoreEl.style.color = color;
+  barEl.style.width = pct + '%';
+  barEl.style.background = color;
+
+  let html = '';
+  collected.forEach(i => {
+    html += '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;font-size:11px;font-weight:600;background:#f0fdf4;color:#059669;border:1px solid #bbf7d0;"><i class="fa-solid fa-circle-check" style="font-size:10px;"></i> ' + i + '</div>';
+  });
+  pending.forEach(i => {
+    html += '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;font-size:11px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;"><i class="fa-regular fa-circle" style="font-size:10px;"></i> ' + i + '</div>';
+  });
+  listEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// CUSTOMER BEHAVIOR
+// ══════════════════════════════════════════
+
+let ciResults = [];
+
+function initCustomerBehavior() {
+  fetch('/api/ci-databases').then(r => r.json()).then(d => {
+    const el = document.getElementById('ci-databases');
+    if (d.databases && d.databases.length) {
+      el.innerHTML = d.databases.map(db =>
+        '<span style="display:inline-block;padding:3px 10px;background:rgba(37,99,235,0.1);color:var(--blue);border-radius:12px;font-size:11px;font-weight:600;">' + db + '</span>'
+      ).join('');
+    } else {
+      el.innerHTML = '<span style="color:#999;font-size:12px;">No databases found. Upload files to create one.</span>';
+    }
+  }).catch(() => {
+    document.getElementById('ci-databases').innerHTML = '<span style="color:var(--accent);font-size:12px;">Failed to load</span>';
+  });
+}
+
+async function ciSearch() {
+  const type = document.getElementById('ci-search-type').value;
+  const val = document.getElementById('ci-search-input').value.trim();
+  if (!val) { alert('Please enter a search term.'); return; }
+
+  const container = document.getElementById('ci-search-result');
+  const scoreContainer = document.getElementById('behavior-score-result');
+  container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;"><span class="spinner"></span> Searching...</div>';
+  scoreContainer.innerHTML = '';
+
+  try {
+    const body = {}; body[type] = val;
+    const res = await fetch('/api/ci-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+
+    if (!data.success) { container.innerHTML = '<div style="color:var(--accent);padding:12px;">' + (data.error || 'Search failed') + '</div>'; return; }
+    if (!data.records.length) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No records found</div>'; return; }
+
+    ciResults = data.records;
+    const cols = ['Name', 'Mobile', 'Loan_Amount', 'Repay_Date', 'Collected_Date', 'PaymentStatus'];
+    const labels = { Name: 'Name', Mobile: 'Mobile', Loan_Amount: 'Loan Amount', Repay_Date: 'Repay Date', Collected_Date: 'Collection Date', PaymentStatus: 'Payment Status' };
+    const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed' };
+
+    // Parse date for sorting (DD-MM-YYYY format)
+    function parseRepayDate(d) {
+      if (!d || d === '-') return 0;
+      const parts = String(d).split('-');
+      if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+      return new Date(d).getTime() || 0;
+    }
+
+    // Group by Product, sort each group by Repay_Date desc
+    const grouped = {};
+    data.records.forEach(r => {
+      const prod = r.Product || 'Unknown';
+      if (!grouped[prod]) grouped[prod] = [];
+      grouped[prod].push(r);
+    });
+    const productKeys = Object.keys(grouped).sort();
+    productKeys.forEach(p => {
+      grouped[p].sort((a, b) => parseRepayDate(b.Repay_Date || b.RepayDate) - parseRepayDate(a.Repay_Date || a.RepayDate));
+    });
+
+    let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div class="icon" style="background:#eef2ff;width:28px;height:28px;"><i class="fa-solid fa-table-list" style="color:var(--blue);font-size:12px;"></i></div><span style="font-size:14px;font-weight:700;">Loan Records</span><span style="font-size:12px;color:var(--ink-light);">' + data.total_records + ' records across ' + productKeys.length + ' product(s)</span></div>';
+
+    productKeys.forEach(prod => {
+      const rows = grouped[prod];
+      html += '<div style="margin-bottom:20px;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="display:inline-block;padding:3px 10px;background:rgba(37,99,235,0.1);color:var(--blue);border-radius:12px;font-size:12px;font-weight:700;">' + prod + '</span><span style="font-size:11px;color:var(--ink-light);">' + rows.length + ' records</span></div>';
+      html += '<div class="txn-table-wrap"><table class="txn-table"><thead><tr>';
+      cols.forEach(c => { html += '<th>' + (labels[c] || c) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr>';
+        cols.forEach(c => {
+          let v = r[c] || r[c.replace('_', '')] || '-';
+          if (c === 'PaymentStatus' && v !== '-') {
+            const clr = statusColors[v] || '#6b7280';
+            v = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' + clr + '15;color:' + clr + ';">' + v.replace('_', ' ') + '</span>';
+          }
+          if (c === 'Loan_Amount' && v !== '-') {
+            v = fmt(parseFloat(v) || 0);
+          }
+          html += '<td>' + v + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div></div>';
+    });
+
+    // Fetch behavior score (shows above records)
+    fetchBehaviorScore(body);
+
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--accent);padding:12px;">Network error: ' + e.message + '</div>';
+  }
+}
+
+async function fetchBehaviorScore(searchBody) {
+  const container = document.getElementById('behavior-score-result');
+  container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;"><span class="spinner"></span> Calculating behavior score...</div>';
+
+  try {
+    const res = await fetch('/api/behavior-score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(searchBody) });
+    const data = await res.json();
+
+    if (!data.success) { container.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">Could not calculate score: ' + (data.error || '') + '</div>'; return; }
+
+    const score = data.behavior_score;
+    const max = data.max_score;
+    const pct = (score / max * 100).toFixed(0);
+    const risk = data.risk_label;
+    const riskColors = { 'Low Risk': '#059669', 'Medium Risk': '#d97706', 'High Risk': '#dc2626', 'Very High Risk': '#991b1b' };
+    const riskColor = riskColors[risk] || '#6b7280';
+    const bd = data.breakdown;
+
+    let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div class="icon" style="background:#fef3c7;width:28px;height:28px;"><i class="fa-solid fa-gauge-high" style="color:#b45309;font-size:12px;"></i></div><span style="font-size:14px;font-weight:700;">Customer Behavior Score</span></div>';
+    html += '<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">';
+    // Score circle
+    html += '<div style="position:relative;width:120px;height:120px;">';
+    html += '<svg viewBox="0 0 36 36" style="width:120px;height:120px;transform:rotate(-90deg);">';
+    html += '<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e8e4de" stroke-width="3"/>';
+    html += '<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="' + riskColor + '" stroke-width="3" stroke-dasharray="' + pct + ', 100" stroke-linecap="round"/>';
+    html += '</svg>';
+    html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">';
+    html += '<div style="font-size:28px;font-weight:700;color:' + riskColor + ';">' + score + '</div>';
+    html += '<div style="font-size:10px;color:#999;">/ ' + max + '</div></div></div>';
+
+    // Info
+    html += '<div>';
+    html += '<div style="font-size:20px;font-weight:700;color:' + riskColor + ';">' + risk + '</div>';
+    const ageStr = data.customer.age ? ' (' + data.customer.age + ' yrs)' : '';
+    html += '<div style="font-size:13px;color:var(--ink-light);margin-top:4px;">' + (data.customer.name || '') + ageStr + '</div>';
+    html += '<div style="font-size:12px;color:#999;margin-top:2px;">CIBIL: ' + (data.customer.cibil || 'N/A') + ' | Loans: ' + data.total_loans + '</div>';
+    html += '</div></div>';
+
+
+    // Payment status summary
+    const ps = data.payment_summary;
+    if (ps) {
+      html += '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">';
+      const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed' };
+      for (const [st, count] of Object.entries(ps)) {
+        if (count > 0) {
+          const clr = statusColors[st] || '#6b7280';
+          html += '<span style="padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + clr + '15;color:' + clr + ';">' + st.replace('_', ' ') + ': ' + count + '</span>';
+        }
+      }
+      html += '</div>';
+    }
+
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--accent);padding:12px;">Error: ' + e.message + '</div>';
+  }
+}
+
+async function ciUpload() {
+  const disbursed = document.getElementById('ci-file-disbursed').files[0];
+  const collection = document.getElementById('ci-file-collection').files[0];
+  if (!disbursed || !collection) { alert('Please select both files.'); return; }
+
+  const container = document.getElementById('ci-upload-result');
+  container.innerHTML = '<div style="color:var(--blue);padding:8px;"><span class="spinner"></span> Processing files...</div>';
+
+  const fd = new FormData();
+  fd.append('disbursed', disbursed);
+  fd.append('collection', collection);
+
+  try {
+    const res = await fetch('/api/ci-upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      container.innerHTML = '<div style="color:var(--accent2);padding:8px;font-weight:600;"><i class="fa-solid fa-circle-check"></i> ' + data.message + '</div>';
+      initCustomerBehavior(); // refresh database list
+    } else {
+      container.innerHTML = '<div style="color:var(--accent);padding:8px;">' + (data.error || 'Upload failed') + '</div>';
+    }
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--accent);padding:8px;">Network error: ' + e.message + '</div>';
+  }
+}
+
+// ══════════════════════════════════════════
+// DOCUMENT CHECKLIST
+// ══════════════════════════════════════════
+const docCheckItems = [
+  'Aadhaar Card', 'PAN Card', 'Address Proof', 'Bank Statement', 'Salary Slip',
+  'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate'
+];
+const docCheckKey = 'fintools_doc_checklist';
+
+function loadDocChecklist() {
+  try { return JSON.parse(localStorage.getItem(docCheckKey)) || {}; } catch { return {}; }
+}
+function saveDocChecklist(state) { localStorage.setItem(docCheckKey, JSON.stringify(state)); }
+
+function renderDocChecklist() {
+  const state = loadDocChecklist();
+  const body = document.getElementById('doc-checklist-body');
+  const checked = Object.values(state).filter(Boolean).length;
+  const total = docCheckItems.length;
+
+  document.getElementById('doc-progress-bar').style.width = (total ? (checked / total * 100) : 0) + '%';
+  document.getElementById('doc-progress-count').textContent = checked + ' of ' + total + ' collected';
+
+  body.innerHTML = docCheckItems.map((item, i) => {
+    const isChecked = state[item] ? 'checked' : '';
+    return '<label class="doc-check-item ' + isChecked + '" data-item="' + item + '">' +
+      '<input type="checkbox" ' + (isChecked ? 'checked' : '') + '>' +
+      '<div class="doc-check-box"><i class="fa-solid fa-check"></i></div>' +
+      '<span class="doc-check-label">' + item + '</span></label>';
+  }).join('');
+
+  body.querySelectorAll('.doc-check-item').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      const item = this.dataset.item;
+      const s = loadDocChecklist();
+      s[item] = !s[item];
+      saveDocChecklist(s);
+      renderDocChecklist();
+    });
+  });
+}
+
+function toggleDocPanel() {
+  const panel = document.getElementById('doc-checklist-panel');
+  const btn = document.getElementById('doc-checklist-toggle');
+  panel.classList.toggle('open');
+  btn.classList.toggle('panel-open');
+}
+</script>
+
+<!-- Document Checklist Panel -->
+<button class="doc-checklist-toggle" id="doc-checklist-toggle" onclick="toggleDocPanel()">
+  <i class="fa-solid fa-clipboard-check" style="margin-bottom:6px;"></i> Docs
+</button>
+<div class="doc-checklist-panel" id="doc-checklist-panel">
+  <div class="doc-checklist-header">
+    <h3><i class="fa-solid fa-clipboard-check" style="color:var(--primary);margin-right:6px;"></i> Document Checklist</h3>
+    <div class="doc-checklist-progress"><div class="doc-checklist-progress-bar" id="doc-progress-bar"></div></div>
+    <div class="doc-checklist-count" id="doc-progress-count"></div>
+  </div>
+  <div class="doc-checklist-body" id="doc-checklist-body"></div>
+</div>
+
+<script>renderDocChecklist();</script>
+
+</body>
+</html>
