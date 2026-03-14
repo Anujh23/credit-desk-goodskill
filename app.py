@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File, Query
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import uuid
 import os
@@ -15,7 +16,19 @@ from database import (search_customer, list_products, process_uploaded_files,
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://credit-desk-goodskill.onrender.com"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 BASE_URL = "https://goodskill.fiulive.finfactor.co.in/finsense/API/V2"
 
