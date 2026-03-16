@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File, Query
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import uuid
@@ -25,6 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/health")
 def health():

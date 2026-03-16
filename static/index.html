@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CreditDesk</title>
+  <link rel="icon" type="image/jpeg" href="/static/credit-icon.jpg"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   <style>
@@ -1877,8 +1878,8 @@ async function ciSearch() {
     if (!data.records.length) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No records found</div>'; return; }
 
     ciResults = data.records;
-    const cols = ['Name', 'Mobile', 'Loan_Amount', 'Repay_Date', 'Collected_Date', 'PaymentStatus'];
-    const labels = { Name: 'Name', Mobile: 'Mobile', Loan_Amount: 'Loan Amount', Repay_Date: 'Repay Date', Collected_Date: 'Collection Date', PaymentStatus: 'Payment Status' };
+    const cols = ['Name', 'Mobile', 'Repay_Date', 'Collected_Date', 'PaymentStatus'];
+    const labels = { Name: 'Name', Mobile: 'Mobile', Repay_Date: 'Repay Date', Collected_Date: 'Collection Date', PaymentStatus: 'Payment Status' };
     const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed' };
 
     // Parse date for sorting (DD-MM-YYYY format)
@@ -1917,9 +1918,6 @@ async function ciSearch() {
           if (c === 'PaymentStatus' && v !== '-') {
             const clr = statusColors[v] || '#6b7280';
             v = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:' + clr + '15;color:' + clr + ';">' + v.replace('_', ' ') + '</span>';
-          }
-          if (c === 'Loan_Amount' && v !== '-') {
-            v = fmt(parseFloat(v) || 0);
           }
           html += '<td>' + v + '</td>';
         });
