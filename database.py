@@ -801,8 +801,22 @@ def search_customer(pan: str = None, name: str = None, mobile: str = None, case_
             continue
         d_table = get_table_name(product, 'disbursed')
         c_table = get_table_name(product, 'collection')
+        # Determine loan amount column (varies by product)
+        d_cols = [c['column_name'] for c in get_table_columns(d_table)]
+        if 'Loan_Amount' in d_cols:
+            loan_amt_expr = 'd."Loan_Amount"'
+        elif 'Loan_Amount_Approved' in d_cols:
+            loan_amt_expr = 'd."Loan_Amount_Approved"'
+        else:
+            loan_amt_expr = 'NULL'
         union_parts.append(f"""
-            (SELECT d.*, c."Collected_Date" AS "Collected_Date",
+            (SELECT d."LeadID", d."Loan_No", d."Name", d."Mobile", d."Pancard",
+                    d."DOB", d."Gender", d."Email", d."Aadhar_No",
+                    d."Loan_Type", d."Branch", d."Tenure", d."ROI",
+                    {loan_amt_expr} AS "Loan_Amount",
+                    d."Repay_Date", d."Disbursal_Date", d."Cibil",
+                    d."Monthly_Income", d."Status",
+                    c."Collected_Date" AS "Collected_Date",
                     c."Collected_Amount" AS "Collected_Amount",
                     c."Status" AS "Collection_Status",
                     %s AS "_product"
