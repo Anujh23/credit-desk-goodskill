@@ -44,11 +44,13 @@
     }
     header .logo-mark {
       width: 34px; height: 34px;
-      background: var(--accent);
+      background: #fff;
       border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'DM Serif Display', serif;
-      color: #fff; font-size: 16px; font-weight: 700;
+      overflow: hidden;
+    }
+    header .logo-mark img {
+      width: 100%; height: 100%;
+      object-fit: contain;
     }
     header h1 {
       font-family: 'DM Serif Display', serif;
@@ -357,7 +359,7 @@
 <body>
 
 <header>
-  <div class="logo-mark">C</div>
+  <div class="logo-mark"><img src="/static/Everyday Loan.png" alt="CreditDesk Logo"></div>
   <h1>CreditDesk</h1>
   <div class="header-right"><span id="currentDate"></span></div>
 </header>
