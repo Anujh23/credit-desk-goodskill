@@ -616,8 +616,8 @@
             <div class="card-title"><div class="icon"><i class="fa-solid fa-file-lines"></i></div> Bank Statement</div>
             <div style="display:flex; gap:12px; max-width:700px; flex-wrap:wrap;">
               <button class="btn btn-green" id="fi-fetchBtn" onclick="fiFetch()" style="flex:1; min-width:180px;"><i class="fa-solid fa-eye"></i> View Statement</button>
-              <button class="btn btn-blue" id="fi-downloadBtn" onclick="fiDownloadCSV()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-csv"></i> Download This CSV</button>
-              <button class="btn btn-amber" id="fi-downloadAllBtn" onclick="fiDownloadAllCSV()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-zipper"></i> Download All CSVs</button>
+              <button class="btn btn-blue" id="fi-downloadBtn" onclick="fiDownloadPDF()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-pdf"></i> Download This PDF</button>
+              <button class="btn btn-amber" id="fi-downloadAllBtn" onclick="fiDownloadAllPDF()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-file-zipper"></i> Download All PDFs</button>
               <button class="btn btn-green" id="fi-saveBtn" onclick="saveStatement()" style="flex:1; min-width:180px; display:none;"><i class="fa-solid fa-floppy-disk"></i> Save Statement</button>
             </div>
             <div id="fi-fetchResult" style="display:none; margin-top:20px;">
@@ -1244,47 +1244,119 @@ async function fiFetch() {
   } finally { setLoading(btn, false); }
 }
 
-function downloadOneCSV(acc, idx) {
-  const accName = acc.holderName || 'Account_' + (idx + 1);
+function downloadOnePDF(acc, idx) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const accName = acc.holderName || 'Account ' + (idx + 1);
   const accNum = acc.maskedAccNumber || 'Unknown';
-  const rows = [];
-  rows.push(['Date', 'Narration', 'Type', 'Amount', 'Balance']);
-  if (acc.transactions && acc.transactions.length) {
-    acc.transactions.forEach(txn => {
-      const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
-      const narration = (txn.narration || txn.transactionNarration || txn.reference || '').replace(/"/g, '""');
-      const type = (txn.type || txn.txnType || '').toUpperCase();
-      const amount = txn.amount || txn.transactionAmount || '';
-      const balance = txn.currentBalance || txn.balance || '';
-      rows.push([date, '"' + narration + '"', type, amount, balance]);
-    });
+  const pan = acc.pan || '';
+  const email = acc.email || '';
+  const mobile = acc.mobile || '';
+  const fipId = acc.fipId || '';
+  const txns = acc.transactions || [];
+
+  // Date range from transactions
+  let dateFrom = '', dateTo = '';
+  if (txns.length) {
+    const dates = txns.map(t => t.valueDate || t.transactionTimestamp || t.txnDate || '').filter(Boolean);
+    if (dates.length) { dateFrom = dates[0]; dateTo = dates[dates.length - 1]; }
   }
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = accName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') + '_' + accNum + '_Statement.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  // Header background
+  doc.setFillColor(26, 35, 50);
+  doc.rect(0, 0, 297, 38, 'F');
+
+  // Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Bank Statement', 14, 14);
+
+  // Customer details in header
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const headerLines = [];
+  if (accName) headerLines.push('Name: ' + accName);
+  if (accNum) headerLines.push('Account: ' + accNum);
+  if (pan) headerLines.push('PAN: ' + pan);
+  if (mobile) headerLines.push('Mobile: ' + mobile);
+  if (email) headerLines.push('Email: ' + email);
+  if (fipId) headerLines.push('Bank (FIP): ' + fipId);
+  if (dateFrom || dateTo) headerLines.push('Period: ' + dateFrom + ' to ' + dateTo);
+
+  const col1 = headerLines.slice(0, 4);
+  const col2 = headerLines.slice(4);
+  col1.forEach((line, i) => doc.text(line, 14, 22 + i * 4));
+  col2.forEach((line, i) => doc.text(line, 150, 22 + i * 4));
+
+  // Summary line below header
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  const lastBalance = txns.length ? (txns[txns.length - 1].currentBalance || txns[txns.length - 1].balance || '') : '';
+  doc.text('Total Transactions: ' + txns.length + (lastBalance ? '    |    Last Balance: ' + Number(lastBalance).toLocaleString('en-IN') : ''), 14, 44);
+
+  // Transaction table
+  const tableData = txns.map(txn => {
+    const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
+    const narration = txn.narration || txn.transactionNarration || txn.reference || '';
+    const type = (txn.type || txn.txnType || '').toUpperCase();
+    const amount = txn.amount || txn.transactionAmount || '';
+    const balance = txn.currentBalance || txn.balance || '';
+    return [date, narration, type, amount ? Number(amount).toLocaleString('en-IN', {minimumFractionDigits:2}) : '', balance ? Number(balance).toLocaleString('en-IN', {minimumFractionDigits:2}) : ''];
+  });
+
+  doc.autoTable({
+    startY: 48,
+    head: [['Date', 'Narration', 'Type', 'Amount', 'Balance']],
+    body: tableData,
+    styles: { fontSize: 7, cellPadding: 1.5 },
+    headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 30, halign: 'right' },
+    },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    margin: { left: 10, right: 10 },
+    didParseCell: function(data) {
+      if (data.section === 'body' && data.column.index === 2) {
+        if (data.cell.raw === 'CREDIT') data.cell.styles.textColor = [22, 163, 74];
+        else if (data.cell.raw === 'DEBIT') data.cell.styles.textColor = [220, 38, 38];
+      }
+    }
+  });
+
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text('Generated by CreditDesk on ' + new Date().toLocaleDateString('en-IN'), 14, doc.internal.pageSize.height - 6);
+    doc.text('Page ' + p + ' / ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 6);
+  }
+
+  const fileName = accName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') + '_' + accNum + '_Statement.pdf';
+  doc.save(fileName);
 }
 
-function fiDownloadCSV() {
+function fiDownloadPDF() {
   if (!fetchedAccounts.length) { alert('No data to download. View the statement first.'); return; }
-  // Find currently active tab index
   const activeTab = document.querySelector('.acc-tab.active');
   const idx = activeTab ? Array.from(document.querySelectorAll('.acc-tab')).indexOf(activeTab) : 0;
-  downloadOneCSV(fetchedAccounts[idx], idx);
+  downloadOnePDF(fetchedAccounts[idx], idx);
 }
 
-function fiDownloadAllCSV() {
+function fiDownloadAllPDF() {
   if (!fetchedAccounts.length) { alert('No data to download. View the statement first.'); return; }
   let i = 0;
   function next() {
     if (i < fetchedAccounts.length) {
-      downloadOneCSV(fetchedAccounts[i], i);
+      downloadOnePDF(fetchedAccounts[i], i);
       i++;
       setTimeout(next, 500);
     }
@@ -1562,21 +1634,18 @@ async function downloadSavedStatement(id) {
     const stmt = data.statement;
     const txns = stmt.transactions || [];
     if (!txns.length) { alert('No transactions to download'); return; }
-    // Build CSV from transactions
-    const allKeys = new Set();
-    txns.forEach(t => Object.keys(t).forEach(k => allKeys.add(k)));
-    const headers = Array.from(allKeys);
-    let csv = headers.map(h => '"' + h + '"').join(',') + '\n';
-    txns.forEach(t => {
-      csv += headers.map(h => '"' + String(t[h] || '').replace(/"/g, '""') + '"').join(',') + '\n';
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const name = (stmt.customer_name || 'Statement').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-    const acc = (stmt.account_number || '').replace(/[^a-zA-Z0-9]/g, '');
-    a.download = name + '_' + acc + '_Statement.csv';
-    a.click();
+
+    // Build a compatible account object and reuse downloadOnePDF
+    const acc = {
+      holderName: stmt.customer_name || '',
+      maskedAccNumber: stmt.account_number || '',
+      pan: stmt.pan || '',
+      email: stmt.email || '',
+      mobile: stmt.mobile || '',
+      fipId: stmt.bank_name || '',
+      transactions: txns,
+    };
+    downloadOnePDF(acc, 0);
   } catch (e) {
     alert('Error downloading: ' + e.message);
   }
@@ -2086,6 +2155,9 @@ function toggleDocPanel() {
 </div>
 
 <script>renderDocChecklist();</script>
+
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 
 </body>
 </html>
