@@ -55,7 +55,7 @@ COMPANY_PATTERNS = re.compile(
 )
 
 SALARY_TRANSFER_MODE = re.compile(
-    r'^(neft|rtgs|imps)/|^ft\s*(neft|rtgs|imps)/',
+    r'^(neft|rtgs|imps)[/\s-]|^ft\s*(neft|rtgs|imps)[/\s-]|^recd\s*:\s*imps/|^mmt/imps/',
     re.IGNORECASE,
 )
 
@@ -91,6 +91,10 @@ LOAN_EXCLUDE_PATTERNS = re.compile(
         r'mahavira', r'innofinsolu', r'respo',
         r'akara', r'northern\s*arc', r'aman\s*fincap',
         r'auro\s*fin', r'fincfriend', r'citra', r'ava\s*fina',
+        r'finagle', r'khosya', r'finkurve', r'upmove', r'speel',
+        r'vivifi', r'meghdoo', r'salaryontime', r'minutesloan',
+        r'altura', r'jublee', r'richman', r'surya.?shakti', r'\bdsg\b',
+        r'shreeloan', r'loanprime', r'neena\s*imp',
     ]),
     re.IGNORECASE,
 )
@@ -143,6 +147,10 @@ LENDER_PATTERNS = re.compile(
         r'mahavira', r'innofinsolu', r'respo',
         r'akara', r'northern\s*arc', r'aman\s*fincap',
         r'auro\s*fin', r'fincfriend', r'citra', r'ava\s*fina',
+        r'finagle', r'khosya', r'finkurve', r'upmove', r'speel',
+        r'vivifi', r'meghdoo', r'salaryontime', r'minutesloan',
+        r'altura', r'jublee', r'richman', r'surya.?shakti', r'\bdsg\b',
+        r'shreeloan', r'loanprime', r'neena\s*imp',
     ]),
     re.IGNORECASE,
 )
@@ -266,11 +274,12 @@ def _extract_transfer_dest(narr: str) -> str:
     """Extract receiver/destination from NEFT/RTGS/IMPS debit narrations.
 
     Common formats:
-      NEFT/BANK/RECEIVER NAME/REF  → "receiver name"
-      RTGS/BANK/RECEIVER NAME/REF  → "receiver name"
-      IMPS/BANK/RECEIVER NAME/REF  → "receiver name"
+      NEFT/BANK/RECEIVER NAME/REF             → "receiver name"
+      NEFT-BANKREF-RECEIVER NAME--ACCTNO      → "receiver name"
+      NEFT REF RECEIVER NEFTINW-              → "receiver"
     """
     narr_lower = narr.lower()
+    # Slash-separated: NEFT/BANK/RECEIVER/REF
     for prefix in ('neft/', 'rtgs/', 'imps/', 'ft neft/', 'ft rtgs/', 'ft imps/'):
         if narr_lower.startswith(prefix):
             parts = narr.split('/')
@@ -282,6 +291,15 @@ def _extract_transfer_dest(narr: str) -> str:
                 dest = parts[1].strip().lower()
                 if dest and len(dest) >= 3:
                     return dest
+
+    # Dash-separated (ICICI etc): NEFT-BANKREF-RECEIVER--ACCTNO
+    m = re.match(r'^(?:neft|rtgs)[\s-]+\S+-(.+?)(?:--|\s*$)', narr, re.IGNORECASE)
+    if m:
+        dest = m.group(1).strip()
+        dest = re.sub(r'[-\s]*\d{5,}.*$', '', dest).strip()
+        if dest and len(dest) >= 3:
+            return dest.lower()
+
     return ''
 
 
@@ -372,7 +390,7 @@ def _extract_source(narr: str) -> str:
     """Extract payer/source identifier from a CREDIT narration for grouping."""
     narr_lower = narr.lower()
 
-    # NEFT/RTGS/IMPS: usually MODE/BANK/SENDER_NAME/REF
+    # NEFT/RTGS/IMPS with slash separator: MODE/BANK/SENDER_NAME/REF
     for prefix in ('neft/', 'rtgs/', 'imps/', 'ft neft/', 'ft rtgs/', 'ft imps/'):
         if narr_lower.startswith(prefix):
             parts = narr.split('/')
@@ -380,6 +398,48 @@ def _extract_source(narr: str) -> str:
                 return parts[2].strip().lower()
             if len(parts) >= 2:
                 return parts[1].strip().lower()
+
+    # NEFT/RTGS with dash separator (ICICI, etc): NEFT-BANKREF-SENDER NAME--ACCTNO
+    # e.g. "NEFT-BOFAN52025091710661676-ACCENTURE SOLUTIONS PVT LTD--72447190"
+    m = re.match(r'^(?:neft|rtgs|ft\s*neft|ft\s*rtgs)[\s-]+\S+-(.+?)(?:--|\s*$)', narr, re.IGNORECASE)
+    if m:
+        sender = m.group(1).strip()
+        # Remove trailing account numbers/refs (all digits or dash-separated digits)
+        sender = re.sub(r'[-\s]*\d{5,}.*$', '', sender).strip()
+        if sender and len(sender) >= 3:
+            return sender.lower()
+
+    # NEFT/RTGS with space separator (Kotak, etc): NEFT REF SENDER NEFTINW-
+    # e.g. "NEFT IN22536009235468 LARSEN NEFTINW-"
+    m = re.match(r'^(?:neft|rtgs)\s+\S+\s+(.+?)(?:\s+NEFTINW|\s*$)', narr, re.IGNORECASE)
+    if m:
+        sender = m.group(1).strip()
+        sender = re.sub(r'[-\s]*\d{5,}.*$', '', sender).strip()
+        if sender and len(sender) >= 3:
+            return sender.lower()
+
+    # Recd:IMPS (Kotak, etc): Recd:IMPS/REF/SENDER/BANK/ACCT/NOTE
+    # e.g. "Recd:IMPS/535020166107/SOLOMON CA/KKBK/X0399/IMPSX"
+    m = re.match(r'^recd\s*:\s*imps/\d+/([^/]+)', narr, re.IGNORECASE)
+    if m:
+        sender = m.group(1).strip()
+        if sender and len(sender) >= 3:
+            return sender.lower()
+
+    # MMT/IMPS: MMT/IMPS/REF/SENDER/BANK
+    # e.g. "MMT/IMPS/526126101617/PAYOUTS/PayoutRBL/Ratnakar Bank"
+    m = re.match(r'^mmt/imps/\d+/([^/]+)', narr, re.IGNORECASE)
+    if m:
+        sender = m.group(1).strip()
+        if sender and len(sender) >= 3:
+            return sender.lower()
+
+    # NEFT with NEFTINW prefix (Kotak inward): NEFT YESF... SENDER NEFTINW-
+    m = re.match(r'^neft\s+\S+\s+(.+?)\s+neftinw', narr, re.IGNORECASE)
+    if m:
+        sender = m.group(1).strip()
+        if sender and len(sender) >= 3:
+            return sender.lower()
 
     # UPI: extract sender name (2nd segment)
     if re.match(r'^upi', narr_lower):
@@ -396,9 +456,15 @@ def _extract_source(narr: str) -> str:
 def _get_transfer_mode(narr: str) -> str:
     """Classify transfer mode: 'neft_rtgs', 'imps', 'upi', or 'other'."""
     narr_lower = narr.lower()
-    if re.match(r'^(neft|rtgs|ft\s*neft|ft\s*rtgs)/', narr_lower):
+    # NEFT/RTGS: slash, dash, or space separator
+    if re.match(r'^(neft|rtgs|ft\s*neft|ft\s*rtgs)[/\s-]', narr_lower):
         return 'neft_rtgs'
-    if re.match(r'^(imps|ft\s*imps)/', narr_lower):
+    # IMPS: slash, dash, or space separator; also Recd:IMPS and MMT/IMPS
+    if re.match(r'^(imps|ft\s*imps)[/\s-]', narr_lower):
+        return 'imps'
+    if re.match(r'^recd\s*:\s*imps/', narr_lower):
+        return 'imps'
+    if re.match(r'^mmt/imps/', narr_lower):
         return 'imps'
     if re.match(r'^upi', narr_lower):
         return 'upi'
@@ -768,9 +834,10 @@ def analyze_transactions(transactions: list[dict]) -> dict[str, Any]:
         is_lender = bool(LENDER_PATTERNS.search(narr))
         is_upi = bool(UPI_PATTERN.search(narr))
         is_ecom = bool(ECOM_PATTERN.search(narr))
+        is_pg_pcd = bool(re.match(r'^(pg\s|pcd/)', narr))
 
         # ── EMI / Loans (merged) ──
-        if is_lender and amt >= 500 and (is_ach_nach or is_ecom or SALARY_TRANSFER_MODE.search(narr) or is_upi):
+        if is_lender and amt >= 500 and (is_ach_nach or is_ecom or SALARY_TRANSFER_MODE.search(narr) or is_upi or is_pg_pcd):
             emi_loans.append(row)
         elif is_ach_nach and amt >= 500:
             emi_loans.append(row)
