@@ -1529,7 +1529,7 @@ async function runAnalysis(idx) {
     document.getElementById('analysis-salary').innerHTML = renderAnalysisTable(salary, 'CREDIT', 'No salary credits detected');
     document.getElementById('analysis-emi').innerHTML = renderAnalysisTable(emiLoans, 'DEBIT', 'No EMI / loan payments detected');
     document.getElementById('analysis-bounce').innerHTML = renderAnalysisTable(nachBounce, 'DEBIT', 'No NACH bounces found - Good!', true);
-    document.getElementById('analysis-freq').innerHTML = renderFrequentTransfers(freqTransfers);
+    document.getElementById('analysis-freq').innerHTML = renderFrequentTransfers(freqTransfers, s.income_base);
 
   } catch (e) {
     document.getElementById('analysis-summary').innerHTML = '<div style="color:var(--accent);padding:20px;">Analysis error: ' + e.message + '</div>';
@@ -1548,12 +1548,14 @@ function renderAnalysisTable(items, type, emptyMsg, isBounce) {
   return html;
 }
 
-function renderFrequentTransfers(items) {
+function renderFrequentTransfers(items, incomeBase) {
   if (!items || !items.length) return '<div style="color:#999;text-align:center;padding:20px;font-size:13px;">No frequent transfers detected</div>';
-  let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>UPI / Account</th><th style="text-align:center">Transfers</th><th style="text-align:right">Total Sent</th><th style="text-align:right">% of Salary</th></tr></thead><tbody>';
+  const pctLabel = incomeBase === 'salary' ? '% of Salary' : incomeBase === 'inflow' ? '% of Inflow' : '%';
+  let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>UPI / Account</th><th style="text-align:center">Transfers</th><th style="text-align:right">Total Sent</th><th style="text-align:right">' + pctLabel + '</th></tr></thead><tbody>';
   items.forEach(t => {
-    const pctColor = t.pct_of_salary >= 80 ? 'var(--accent)' : t.pct_of_salary >= 50 ? 'var(--amber)' : '#555';
-    html += '<tr><td style="font-family:monospace;font-size:12px;">' + (t.destination||'') + '</td><td style="text-align:center;">' + t.count + 'x</td><td class="txn-amount txn-type-debit">' + fmt(t.total) + '</td><td style="text-align:right;font-weight:600;color:' + pctColor + ';">' + t.pct_of_salary + '%</td></tr>';
+    const pct = t.pct_of_income ?? t.pct_of_salary ?? 0;
+    const pctColor = pct >= 80 ? 'var(--accent)' : pct >= 50 ? 'var(--amber)' : '#555';
+    html += '<tr><td style="font-family:monospace;font-size:12px;">' + (t.destination||'') + '</td><td style="text-align:center;">' + t.count + 'x</td><td class="txn-amount txn-type-debit">' + fmt(t.total) + '</td><td style="text-align:right;font-weight:600;color:' + pctColor + ';">' + pct + '%</td></tr>';
   });
   html += '</tbody></table></div>';
   return html;
