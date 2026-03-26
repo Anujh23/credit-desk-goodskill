@@ -168,6 +168,7 @@ def normalize_upload_columns(df: pd.DataFrame) -> pd.DataFrame:
         'accounttype': 'Account_Type',
         'account_type': 'Account_Type',
         'bankifsc': 'Bank_IFSC',
+        'bank_ifsc': 'Bank_IFSC',
         'ifsc': 'Bank_IFSC',
         'bankifsccode': 'Bank_IFSC',
         'ifsc_code': 'Bank_IFSC',
@@ -184,9 +185,12 @@ def normalize_upload_columns(df: pd.DataFrame) -> pd.DataFrame:
         
         # ============ Disbursal ============
         'disbursalreferenceno': 'Disbursal_Reference_No',
+        'disbursal_reference_no': 'Disbursal_Reference_No',
         'disbursal_refno': 'Disbursal_Reference_No',
         'disbursal_ref_no': 'Disbursal_Reference_No',
         'disbursalreference': 'Disbursal_Reference_No',
+        'disbursalrefrenceno': 'Disbursal_Reference_No',
+        'disbursal_refrence_no': 'Disbursal_Reference_No',
         'disbursaldate': 'Disbursal_Date',
         'disbursal_date': 'Disbursal_Date',
         'disbursedbybank': 'Disbursed_By_Bank',
@@ -208,6 +212,7 @@ def normalize_upload_columns(df: pd.DataFrame) -> pd.DataFrame:
         'convininece_fee': 'Convenience_Fee',
         'creditriskanalysisfee': 'CreditRisk_Analysis_Fee',
         'creditrisk_analysis_fee': 'CreditRisk_Analysis_Fee',
+        'credit_risk_analysis_fee': 'CreditRisk_Analysis_Fee',
         'creditriskfee': 'CreditRisk_Analysis_Fee',
         'creditrisk_analisys_fee': 'CreditRisk_Analysis_Fee',  # typo fix
         'creditriskanalisysfee': 'CreditRisk_Analysis_Fee',
@@ -263,6 +268,7 @@ def normalize_upload_columns(df: pd.DataFrame) -> pd.DataFrame:
         
         # ============ Collection: References & Mode ============
         'collectedmode': 'Collected_Mode',
+        'collected_mode': 'Collected_Mode',
         'collectionmode': 'Collected_Mode',
         'collection_mode': 'Collected_Mode',
         'collected_date': 'Collected_Date',
@@ -545,20 +551,28 @@ def align_dataframe_columns(df: pd.DataFrame, existing_cols: List[str]) -> pd.Da
         df = df.loc[:, ~df.columns.duplicated()]
     
     # Build mapping from normalized names to original df column names
+    # Two levels: exact lowercase match, and stripped (no underscores) for fuzzy match
     df_col_map = {}
+    df_col_map_stripped = {}
     for col in df.columns:
         normalized = sanitize_column_name(col).lower()
+        stripped = normalized.replace('_', '')
         if normalized not in df_col_map:
             df_col_map[normalized] = col
-    
+        if stripped not in df_col_map_stripped:
+            df_col_map_stripped[stripped] = col
+
     # Build mapping of existing table columns to df columns
     matched_cols = {}
     unmatched_cols = []
-    
+
     for existing_col in existing_cols:
         existing_normalized = existing_col.lower()
+        existing_stripped = existing_normalized.replace('_', '')
         if existing_normalized in df_col_map:
             matched_cols[existing_col] = df_col_map[existing_normalized]
+        elif existing_stripped in df_col_map_stripped:
+            matched_cols[existing_col] = df_col_map_stripped[existing_stripped]
         else:
             unmatched_cols.append(existing_col)
     
@@ -735,9 +749,15 @@ def standardize_date_column(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
         return df
     
     df = df.copy()
-    df[column_name] = df[column_name].apply(lambda x: 
-        parse_date_flexible(x).strftime('%d-%m-%Y') if parse_date_flexible(x) else None
-    )
+    def _safe_format_date(x):
+        parsed = parse_date_flexible(x)
+        if parsed and parsed is not pd.NaT:
+            try:
+                return parsed.strftime('%d-%m-%Y')
+            except (ValueError, AttributeError):
+                return None
+        return None
+    df[column_name] = df[column_name].apply(_safe_format_date)
     return df
 
 
