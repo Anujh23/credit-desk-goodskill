@@ -203,8 +203,8 @@ def calculate_sanction(data):
         min_sanction = min(min_sanction, min_cap)
         max_sanction = min(max_sanction, max_cap)
 
-        # Add ₹200 per document collected from checklist
-        doc_bonus = data.get('docs_collected', 0) * 200
+        # Add ₹177 per document collected from checklist
+        doc_bonus = data.get('docs_collected', 0) * 177
         min_sanction += doc_bonus
         max_sanction += doc_bonus
 

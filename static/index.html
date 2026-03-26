@@ -1867,6 +1867,10 @@ async function analyzeCredit() {
     // Show document readiness from checklist
     showDocReadiness();
 
+    // Reset document checklist after result is shown
+    saveDocChecklist({});
+    renderDocChecklist();
+
   } catch (err) {
     alert('Could not connect to server. Make sure the credit analyser API is running.');
   } finally {
@@ -1878,7 +1882,8 @@ function showDocReadiness() {
   const checkKey = 'fintools_doc_checklist';
   const items = [
     'Aadhaar Card', 'PAN Card', 'Address Proof', 'Bank Statement', 'Salary Slip',
-    'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate'
+    'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate',
+    'Alternative Number', 'Reference Number', 'Official Mail ID / Domain Photo'
   ];
   let state = {};
   try { state = JSON.parse(localStorage.getItem(checkKey)) || {}; } catch {}
@@ -2099,7 +2104,8 @@ async function ciUpload() {
 // ══════════════════════════════════════════
 const docCheckItems = [
   'Aadhaar Card', 'PAN Card', 'Address Proof', 'Bank Statement', 'Salary Slip',
-  'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate'
+  'Employee Card', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate',
+  'Alternative Number', 'Reference Number', 'Official Mail ID / Domain Photo'
 ];
 const docCheckKey = 'fintools_doc_checklist';
 
