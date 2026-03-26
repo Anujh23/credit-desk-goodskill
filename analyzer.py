@@ -33,6 +33,7 @@ SALARY_KEYWORDS = re.compile(
     '|'.join([
         r'salary',
         r'sal cr',
+        r'salar',
         r'sal/',
         r'monthly pay',
         r'payroll',
