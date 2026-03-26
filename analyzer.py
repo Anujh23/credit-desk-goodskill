@@ -831,13 +831,23 @@ def analyze_transactions(transactions: list[dict]) -> dict[str, Any]:
             continue
 
         is_ach_nach = bool(ACH_NACH_PATTERN.search(narr))
-        is_lender = bool(LENDER_PATTERNS.search(narr))
         is_upi = bool(UPI_PATTERN.search(narr))
         is_ecom = bool(ECOM_PATTERN.search(narr))
         is_pg_pcd = bool(re.match(r'^(pg\s|pcd/)', narr))
+        is_bil = bool(re.match(r'^(bil/onl/|bil/inft/|bil/neft/|inf/inft/)', narr))
+
+        # For UPI: strip the last segment (bank name) before lender matching
+        # UPI format: UPI/P2M/ref/RECIPIENT/remark/BANK NAME
+        # Without this, "IDFC FIRST BANK" or "EQUITAS SMALL FINANC" at the
+        # end would falsely match lender patterns like "idfc first" / "financ"
+        if is_upi:
+            lender_check_narr = narr.rsplit('/', 1)[0]
+        else:
+            lender_check_narr = narr
+        is_lender = bool(LENDER_PATTERNS.search(lender_check_narr))
 
         # ── EMI / Loans (merged) ──
-        if is_lender and amt >= 500 and (is_ach_nach or is_ecom or SALARY_TRANSFER_MODE.search(narr) or is_upi or is_pg_pcd):
+        if is_lender and amt >= 500 and (is_ach_nach or is_ecom or SALARY_TRANSFER_MODE.search(narr) or is_upi or is_pg_pcd or is_bil):
             emi_loans.append(row)
         elif is_ach_nach and amt >= 500:
             emi_loans.append(row)
