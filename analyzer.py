@@ -1,7 +1,7 @@
 """
 Bank Statement Transaction Analyzer
 ────────────────────────────────────
-Classifies bank transactions into: Salary, EMI/Loans,
+Classifies bank transactions into: Salary, EMI/Loans, ACH,
 NACH Bounces, and Frequent Transfers using pattern matching
 and temporal analysis.
 
@@ -113,7 +113,7 @@ EMI_UPI_STRICT = re.compile(
 )
 
 ACH_NACH_PATTERN = re.compile(
-    r'^ach|^nach|^ecs|^si/',
+    r'\bach|^nach|^ecs|^si/',
     re.IGNORECASE,
 )
 
@@ -852,6 +852,8 @@ def analyze_transactions(transactions: list[dict]) -> dict[str, Any]:
         elif is_ach_nach and amt >= 500:
             emi_loans.append(row)
         elif amt >= 500 and (is_upi or is_ecom) and EMI_UPI_STRICT.search(narr):
+            emi_loans.append(row)
+        elif amt >= 500 and EMI_UPI_STRICT.search(narr):
             emi_loans.append(row)
 
         # ── Bank charges ──
