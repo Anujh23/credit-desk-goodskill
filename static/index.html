@@ -297,6 +297,141 @@
     .txn-table .txn-balance { font-family: 'Courier New', monospace; color: var(--ink-light); text-align: right; }
     .txn-count-badge { font-size: 12px; color: var(--ink-light); margin-bottom: 12px; }
 
+    /* ── Login Screen ── */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    /* Subtle pattern background matching sidebar feel */
+    .login-stars {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(1.5px 1.5px at 30px 40px, rgba(255,255,255,0.08), transparent),
+        radial-gradient(1px 1px at 80px 20px, rgba(255,255,255,0.06), transparent),
+        radial-gradient(1.5px 1.5px at 140px 60px, rgba(255,255,255,0.07), transparent),
+        radial-gradient(1px 1px at 180px 90px, rgba(255,255,255,0.05), transparent);
+      background-size: 200px 100px;
+      animation: twinkle 5s ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    /* Wrapper for panda + card */
+    .login-wrapper {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column; align-items: center;
+      animation: wrapperIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0; transform: translateY(40px);
+    }
+    @keyframes wrapperIn { to { opacity: 1; transform: translateY(0); } }
+
+    /* Panda — sits ON TOP of the card, overlapping */
+    .panda-wrap {
+      position: relative; z-index: 3;
+      margin-bottom: -60px;
+    }
+
+    /* Login card — uses --paper and --card from theme */
+    .login-box {
+      position: relative; z-index: 2;
+      background: var(--paper); border-radius: 24px;
+      padding: 80px 40px 36px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Title */
+    .login-title {
+      text-align: center; margin-bottom: 24px;
+    }
+    .login-title h2 {
+      font-family: 'DM Serif Display', serif; font-size: 26px; font-weight: 400;
+      color: var(--ink); margin-bottom: 4px;
+    }
+    .login-title p { color: var(--ink-light); font-size: 13px; }
+
+    /* Fields */
+    .login-box .login-field { margin-bottom: 18px; position: relative; }
+    .login-box .login-field label {
+      display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--ink-light); margin-bottom: 6px;
+      transition: color 0.2s;
+    }
+    .login-box .login-field.focused label { color: var(--accent); }
+    .login-box .input-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .login-box .input-wrap .field-icon {
+      position: absolute; left: 14px; color: #b0aaa2; font-size: 14px;
+      transition: color 0.3s, transform 0.3s;
+    }
+    .login-box .login-field.focused .field-icon { color: var(--accent); transform: scale(1.15); }
+    .login-box .input-wrap input {
+      width: 100%; padding: 12px 44px 12px 42px;
+      border: 2px solid var(--border); border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+      background: var(--card); transition: all 0.3s ease; outline: none;
+    }
+    .login-box .input-wrap input:focus {
+      border-color: var(--accent); background: #fff;
+      box-shadow: 0 0 0 4px rgba(200,75,47,0.08);
+    }
+    .login-box .input-wrap input::placeholder { color: #c5bfb8; }
+    .toggle-password {
+      position: absolute; right: 12px; background: none; border: none;
+      color: #b0aaa2; cursor: pointer; font-size: 14px; padding: 4px;
+      transition: color 0.2s;
+    }
+    .toggle-password:hover { color: var(--ink); }
+
+    /* Error */
+    .login-error {
+      background: #fff5f5; color: var(--accent);
+      border: 1px solid #fecaca; border-radius: 10px;
+      padding: 10px 14px; font-size: 13px; margin-bottom: 16px;
+      display: none; align-items: center; gap: 8px;
+      animation: shakeError 0.5s ease;
+    }
+    .login-error.visible { display: flex; }
+    @keyframes shakeError {
+      0%,100% { transform: translateX(0); }
+      15% { transform: translateX(-10px); }
+      30% { transform: translateX(8px); }
+      45% { transform: translateX(-6px); }
+      60% { transform: translateX(4px); }
+      75% { transform: translateX(-2px); }
+    }
+
+    /* Button — uses accent coral like the rest of the app */
+    .login-btn {
+      width: 100%; margin-top: 8px; padding: 13px;
+      background: var(--accent);
+      color: #fff; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.3s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(200,75,47,0.35); background: #b03d23; }
+    .login-btn:active { transform: translateY(0) scale(0.98); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+    .login-btn .spin { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+    /* Footer */
+    .login-footer { text-align: center; margin-top: 20px; }
+    .login-footer span { font-size: 11px; color: var(--ink-light); }
+
+    #app-container { display: none; }
+    #app-container.visible { display: contents; }
+
+    @media (max-width: 480px) {
+      .login-box { margin: 0 16px; padding: 70px 24px 28px; }
+      .panda-wrap svg { width: 160px; }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 900px) { .page-grid { grid-template-columns: 1fr; } }
     @media (max-width: 700px) { .sidebar { display: none; } .main-content { padding: 20px; } header { padding: 14px 16px; } }
@@ -358,10 +493,142 @@
 </head>
 <body>
 
+<!-- ═══════════ LOGIN SCREEN ═══════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-stars"></div>
+
+  <div class="login-wrapper" id="loginWrapper">
+    <!-- ── PANDA (big, sits on top of card) ── -->
+    <div class="panda-wrap">
+      <svg id="pandaSvg" viewBox="0 0 320 280" width="200" height="175">
+        <!-- Ears -->
+        <ellipse cx="82" cy="72" rx="36" ry="34" fill="#1a1a2e"/>
+        <ellipse cx="82" cy="72" rx="20" ry="18" fill="#2d2d44"/>
+        <ellipse cx="238" cy="72" rx="36" ry="34" fill="#1a1a2e"/>
+        <ellipse cx="238" cy="72" rx="20" ry="18" fill="#2d2d44"/>
+
+        <!-- Head -->
+        <ellipse cx="160" cy="148" rx="100" ry="88" fill="#f5f5f5"/>
+        <ellipse cx="160" cy="148" rx="100" ry="88" fill="none" stroke="#e0ddd8" stroke-width="1.5"/>
+
+        <!-- Eye patches (tilted) -->
+        <ellipse cx="118" cy="138" rx="32" ry="28" fill="#1a1a2e" transform="rotate(-8,118,138)"/>
+        <ellipse cx="202" cy="138" rx="32" ry="28" fill="#1a1a2e" transform="rotate(8,202,138)"/>
+
+        <!-- Eyes open -->
+        <g id="pandaEyesOpen">
+          <ellipse cx="118" cy="136" rx="16" ry="16" fill="#fff"/>
+          <circle id="pupilL" cx="118" cy="136" r="9" fill="#1a1a2e"/>
+          <circle class="pupil-glint-l" cx="113" cy="131" r="4" fill="#fff" opacity="0.9"/>
+          <circle cx="121" cy="133" r="2" fill="#fff" opacity="0.5"/>
+
+          <ellipse cx="202" cy="136" rx="16" ry="16" fill="#fff"/>
+          <circle id="pupilR" cx="202" cy="136" r="9" fill="#1a1a2e"/>
+          <circle cx="197" cy="131" r="4" fill="#fff" opacity="0.9"/>
+          <circle cx="205" cy="133" r="2" fill="#fff" opacity="0.5"/>
+        </g>
+
+        <!-- Eyes closed (happy squint) -->
+        <g id="pandaEyesClosed" style="display:none">
+          <path d="M100,136 Q118,126 136,136" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+          <path d="M184,136 Q202,126 220,136" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- Blink overlay (separate from cover) -->
+        <g id="pandaBlink" style="display:none">
+          <line x1="102" y1="136" x2="134" y2="136" stroke="#1a1a2e" stroke-width="4" stroke-linecap="round"/>
+          <line x1="186" y1="136" x2="218" y2="136" stroke="#1a1a2e" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- Nose -->
+        <ellipse cx="160" cy="168" rx="12" ry="8" fill="#1a1a2e"/>
+        <ellipse cx="157" cy="166" rx="4" ry="2.5" fill="#2d2d44" opacity="0.5"/>
+
+        <!-- Mouth -->
+        <path id="pandaMouth" d="M145,180 Q160,194 175,180" fill="none" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Blush cheeks -->
+        <ellipse id="blushL" cx="88" cy="168" rx="16" ry="10" fill="#ff9a9e" opacity="0.25"/>
+        <ellipse id="blushR" cx="232" cy="168" rx="16" ry="10" fill="#ff9a9e" opacity="0.25"/>
+
+        <!-- Body (visible bottom) -->
+        <ellipse cx="160" cy="248" rx="72" ry="38" fill="#f5f5f5" stroke="#e0ddd8" stroke-width="1.5"/>
+        <ellipse cx="160" cy="252" rx="40" ry="18" fill="#e8e6e1"/>
+
+        <!-- Arms / Paws — these rise up to cover eyes -->
+        <g id="pandaHands">
+          <g id="pawL">
+            <ellipse cx="86" cy="250" rx="34" ry="24" fill="#1a1a2e"/>
+            <ellipse cx="76" cy="246" rx="8" ry="6" fill="#2d2d44" opacity="0.5"/>
+            <ellipse cx="90" cy="242" rx="7" ry="5" fill="#2d2d44" opacity="0.5"/>
+            <ellipse cx="100" cy="246" rx="6" ry="5" fill="#2d2d44" opacity="0.4"/>
+          </g>
+          <g id="pawR">
+            <ellipse cx="234" cy="250" rx="34" ry="24" fill="#1a1a2e"/>
+            <ellipse cx="224" cy="246" rx="8" ry="6" fill="#2d2d44" opacity="0.5"/>
+            <ellipse cx="238" cy="242" rx="7" ry="5" fill="#2d2d44" opacity="0.5"/>
+            <ellipse cx="248" cy="246" rx="6" ry="5" fill="#2d2d44" opacity="0.4"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- ── CARD ── -->
+    <div class="login-box" id="loginBox">
+      <div class="login-title">
+        <h2>Welcome Back</h2>
+        <p>Sign in to CreditDesk</p>
+      </div>
+
+      <div class="login-error" id="loginError">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="loginErrorMsg">Invalid credentials</span>
+      </div>
+
+      <div class="login-field" id="usernameField">
+        <label>Username</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user field-icon"></i>
+          <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="username"
+                 onfocus="onLoginFieldFocus('username')" onblur="onLoginFieldBlur('username')">
+        </div>
+      </div>
+
+      <div class="login-field" id="passwordField">
+        <label>Password</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock field-icon"></i>
+          <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"
+                 onfocus="onLoginFieldFocus('password')" onblur="onLoginFieldBlur('password')">
+          <button type="button" class="toggle-password" onclick="togglePasswordVisibility()" tabindex="-1">
+            <i class="fa-solid fa-eye" id="togglePwdIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button class="login-btn" onclick="handleLogin()" id="loginBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+      </button>
+
+      <div class="login-footer">
+        <span>CreditDesk &copy; 2026</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ APP (hidden until auth) ═══════════ -->
+<div id="app-container">
 <header>
   <div class="logo-mark"><img src="/static/Everyday Loan.png" alt="CreditDesk Logo"></div>
   <h1>CreditDesk</h1>
-  <div class="header-right"><span id="currentDate"></span></div>
+  <div class="header-right">
+    <span id="currentDate"></span>
+    <span id="loggedInUser" style="color:#f0a08a;font-weight:500;font-size:13px;"></span>
+    <button onclick="handleLogout()" style="background:none;border:1px solid #334;border-radius:8px;color:#8899aa;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseover="this.style.borderColor='#c84b2f';this.style.color='#f0a08a'" onmouseout="this.style.borderColor='#334';this.style.color='#8899aa'">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </button>
+  </div>
 </header>
 
 <div class="app-layout">
@@ -494,7 +761,7 @@
           <div class="card">
             <div class="card-title"><div class="icon"><i class="fa-solid fa-mobile-screen"></i></div> Request Bank Access</div>
             <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">Enter the customer's mobile number to send a bank statement access request.</p>
-            <div class="field"><label>Customer Mobile Number</label><input type="text" id="cs-custId" placeholder="e.g. 9878641035" /></div>
+            <div class="field"><label>Customer Mobile Number (xxx@finvu)</label><input type="text" id="cs-custId" placeholder="e.g. 9878641035" /></div>
             <input type="hidden" id="cs-consentType" value="periodic" />
             <button class="btn btn-blue" id="cs-consentBtn" onclick="csCreateConsent()"><i class="fa-solid fa-paper-plane"></i> Send Access Request</button>
             <div id="cs-consentResult" style="display:none; margin-top:16px;">
@@ -886,6 +1153,263 @@
 </div>
 
 <script>
+// ── Auth + Panda ──
+let currentUser = null;
+let pandaMode = 'idle'; // idle | watching | covered
+
+// ── Panda helpers ──
+const $ = id => document.getElementById(id);
+
+function setPupils(lx, ly, rx, ry) {
+  $('pupilL').setAttribute('cx', lx); $('pupilL').setAttribute('cy', ly);
+  $('pupilR').setAttribute('cx', rx); $('pupilR').setAttribute('cy', ry);
+}
+
+function pandaLookAt(mx, my) {
+  if (pandaMode === 'covered') return;
+  const svg = $('pandaSvg');
+  if (!svg) return;
+  const rect = svg.getBoundingClientRect();
+  // Center of the panda face in screen pixels
+  const faceCX = rect.left + rect.width * 0.5;
+  const faceCY = rect.top + rect.height * 0.48;
+  // Vector from face center to mouse
+  const dx = mx - faceCX;
+  const dy = my - faceCY;
+  const angle = Math.atan2(dy, dx);
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  // Map distance to pupil shift: quick ramp then cap at 8
+  const maxShift = 8;
+  const shift = maxShift * Math.min(dist / 200, 1);
+  const px = Math.cos(angle) * shift;
+  const py = Math.sin(angle) * shift * 0.6;
+  setPupils(118 + px, 136 + py, 202 + px, 136 + py);
+}
+
+// Follow mouse everywhere
+document.addEventListener('mousemove', function(e) {
+  if (pandaMode !== 'covered') pandaLookAt(e.clientX, e.clientY);
+});
+document.addEventListener('touchmove', function(e) {
+  if (pandaMode !== 'covered' && e.touches[0]) pandaLookAt(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+function pandaCover() {
+  pandaMode = 'covered';
+  $('pandaEyesOpen').style.display = 'none';
+  $('pandaEyesClosed').style.display = 'block';
+  $('pandaHands').style.transition = 'transform 0.45s cubic-bezier(0.34,1.56,0.64,1)';
+  $('pandaHands').style.transform = 'translateY(-108px)';
+  $('pandaMouth').setAttribute('d', 'M152,182 Q160,188 168,182'); // small mouth
+  $('blushL').setAttribute('opacity', '0.5');
+  $('blushR').setAttribute('opacity', '0.5');
+}
+
+function pandaUncover() {
+  pandaMode = 'idle';
+  $('pandaEyesOpen').style.display = 'block';
+  $('pandaEyesClosed').style.display = 'none';
+  $('pandaBlink').style.display = 'none';
+  $('pandaHands').style.transition = 'transform 0.5s cubic-bezier(0.22,1,0.36,1)';
+  $('pandaHands').style.transform = 'translateY(0px)';
+  $('pandaMouth').setAttribute('d', 'M145,180 Q160,194 175,180');
+  $('blushL').setAttribute('opacity', '0.25');
+  $('blushR').setAttribute('opacity', '0.25');
+}
+
+function pandaPeek() {
+  // Paws come up partially, one eye peeks
+  $('pandaHands').style.transform = 'translateY(-90px)';
+  $('pandaEyesClosed').style.display = 'none';
+  $('pandaEyesOpen').style.display = 'block';
+}
+
+function pandaHappy() {
+  $('pandaEyesOpen').style.display = 'none';
+  $('pandaEyesClosed').style.display = 'block';
+  $('pandaMouth').setAttribute('d', 'M138,178 Q160,202 182,178'); // big smile
+  $('blushL').setAttribute('opacity', '0.6');
+  $('blushR').setAttribute('opacity', '0.6');
+}
+
+function pandaSad() {
+  $('pandaMouth').setAttribute('d', 'M148,190 Q160,180 172,190'); // frown
+  // Eyebrows down — shift pupils down
+  setPupils(118, 140, 202, 140);
+}
+
+function pandaReset() {
+  pandaMode = 'idle';
+  $('pandaEyesOpen').style.display = 'block';
+  $('pandaEyesClosed').style.display = 'none';
+  $('pandaBlink').style.display = 'none';
+  $('pandaHands').style.transform = 'translateY(0)';
+  $('pandaMouth').setAttribute('d', 'M145,180 Q160,194 175,180');
+  $('blushL').setAttribute('opacity', '0.25');
+  $('blushR').setAttribute('opacity', '0.25');
+  setPupils(118, 136, 202, 136);
+  $('pupilL').setAttribute('r', '9');
+  $('pupilR').setAttribute('r', '9');
+}
+
+// Random blink every 3-6s
+let blinkTimer;
+function startBlinking() {
+  clearInterval(blinkTimer);
+  blinkTimer = setInterval(() => {
+    if (pandaMode !== 'idle') return;
+    $('pandaEyesOpen').style.display = 'none';
+    $('pandaBlink').style.display = 'block';
+    setTimeout(() => {
+      if (pandaMode === 'idle') {
+        $('pandaBlink').style.display = 'none';
+        $('pandaEyesOpen').style.display = 'block';
+      }
+    }, 150);
+  }, 3000 + Math.random() * 3000);
+}
+
+// ── Field focus/blur ──
+function onLoginFieldFocus(field) {
+  $(field === 'username' ? 'usernameField' : 'passwordField').classList.add('focused');
+  if (field === 'password') {
+    pandaCover();
+  } else {
+    if (pandaMode === 'covered') pandaUncover();
+  }
+}
+function onLoginFieldBlur(field) {
+  $(field === 'username' ? 'usernameField' : 'passwordField').classList.remove('focused');
+  if (field === 'password') pandaUncover();
+}
+
+function togglePasswordVisibility() {
+  const inp = $('loginPassword');
+  const icon = $('togglePwdIcon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.className = 'fa-solid fa-eye-slash';
+    pandaPeek();
+  } else {
+    inp.type = 'password';
+    icon.className = 'fa-solid fa-eye';
+    if (document.activeElement === inp) pandaCover();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  startBlinking();
+});
+
+// ── Auth logic ──
+async function checkAuth() {
+  const token = sessionStorage.getItem('jwt');
+  if (!token) { showLogin(); return; }
+  try {
+    const res = await fetch('/api/auth/verify', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    currentUser = { username: data.username, role: data.role };
+    showApp();
+  } catch {
+    sessionStorage.removeItem('jwt');
+    showLogin();
+  }
+}
+
+function showLogin() {
+  $('loginOverlay').classList.remove('hidden');
+  $('app-container').classList.remove('visible');
+  pandaReset();
+  startBlinking();
+}
+
+function showApp() {
+  pandaHappy();
+  setTimeout(() => {
+    $('loginOverlay').classList.add('hidden');
+    $('app-container').classList.add('visible');
+    $('loggedInUser').textContent = currentUser.username;
+    pandaReset();
+  }, 600);
+}
+
+async function handleLogin() {
+  const username = $('loginUsername').value.trim();
+  const password = $('loginPassword').value;
+  const btn = $('loginBtn');
+  const errBox = $('loginError');
+  const errMsg = $('loginErrorMsg');
+
+  if (!username || !password) {
+    errMsg.textContent = 'Please enter username and password';
+    errBox.classList.add('visible');
+    pandaUncover(); pandaSad();
+    setTimeout(pandaReset, 1500);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Signing in...';
+  errBox.classList.remove('visible');
+  if (pandaMode === 'covered') pandaUncover();
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errMsg.textContent = data.error || 'Login failed';
+      errBox.classList.add('visible');
+      pandaSad();
+      setTimeout(pandaReset, 2000);
+      return;
+    }
+    sessionStorage.setItem('jwt', data.token);
+    currentUser = { username: data.username, role: data.role };
+    showApp();
+  } catch (e) {
+    errMsg.textContent = 'Network error. Please try again.';
+    errBox.classList.add('visible');
+    pandaSad();
+    setTimeout(pandaReset, 2000);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+  }
+}
+
+function handleLogout() {
+  sessionStorage.removeItem('jwt');
+  currentUser = null;
+  $('loginUsername').value = '';
+  $('loginPassword').value = '';
+  $('loginError').classList.remove('visible');
+  // Re-trigger entrance animation
+  const w = $('loginWrapper');
+  w.style.animation = 'none'; w.offsetHeight; w.style.animation = '';
+  showLogin();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !$('loginOverlay').classList.contains('hidden')) handleLogin();
+});
+
+checkAuth();
+
+// Helper: get auth headers for API calls
+function authHeaders(extra = {}) {
+  const token = sessionStorage.getItem('jwt');
+  const headers = { ...extra };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return headers;
+}
+
 // ── Globals ──
 let AA = { token: '', consentHandle: '', consentId: '', custId: '', sessionId: '', csCurrentStep: 1, fiCurrentStep: 1 };
 let fetchedAccounts = [];
@@ -951,7 +1475,7 @@ function copyRedirectUrl() {
 
 // ── API helper ──
 async function apiPost(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await fetch(url, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
   const data = await res.json();
   return { ok: res.ok, status: res.status, data };
 }
@@ -1632,7 +2156,7 @@ async function searchSavedStatements() {
 
 async function downloadSavedStatement(id) {
   try {
-    const r = await fetch('/api/get-statement/' + id);
+    const r = await fetch('/api/get-statement/' + id, { headers: authHeaders() });
     const data = await r.json();
     if (!data.success || !data.statement) { alert('Statement not found'); return; }
     const stmt = data.statement;
@@ -1657,7 +2181,7 @@ async function downloadSavedStatement(id) {
 
 async function loadSavedStatement(id) {
   try {
-    const r = await fetch('/api/get-statement/' + id);
+    const r = await fetch('/api/get-statement/' + id, { headers: authHeaders() });
     const data = await r.json();
     if (!data.success || !data.statement) { alert('Statement not found'); return; }
 
@@ -1688,7 +2212,7 @@ async function loadSavedStatement(id) {
 async function deleteSavedStatement(id) {
   if (!confirm('Delete this saved statement?')) return;
   try {
-    const r = await fetch('/api/delete-statement/' + id, { method: 'DELETE' });
+    const r = await fetch('/api/delete-statement/' + id, { method: 'DELETE', headers: authHeaders() });
     const data = await r.json();
     if (data.success) {
       searchSavedStatements(); // Refresh results
@@ -1747,7 +2271,7 @@ async function calculate() {
   document.querySelectorAll('.result-row').forEach(r => r.classList.remove('row-visible'));
 
   try {
-    const res = await fetch('/calculate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ loan_amount:loanAmount, start_date:startDate, end_date:endDate, interest_rate:interestRate, processing_fee:processingFee }) });
+    const res = await fetch('/calculate', { method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body:JSON.stringify({ loan_amount:loanAmount, start_date:startDate, end_date:endDate, interest_rate:interestRate, processing_fee:processingFee }) });
     if (!res.ok) { const err = await res.json(); alert('Error: ' + (err.detail || 'Something went wrong')); return; }
     const d = await res.json();
     document.getElementById('r-loan').textContent = fmt(d.loan_amount);
@@ -1799,7 +2323,7 @@ async function analyzeCredit() {
   try {
     const res = await fetch('/api/analyze-credit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         monthly_income: income,
         fixed_obligations: obligations,
@@ -1923,7 +2447,7 @@ function showDocReadiness() {
 let ciResults = [];
 
 function initCustomerBehavior() {
-  fetch('/api/ci-databases').then(r => r.json()).then(d => {
+  fetch('/api/ci-databases', { headers: authHeaders() }).then(r => r.json()).then(d => {
     const el = document.getElementById('ci-databases');
     if (d.databases && d.databases.length) {
       el.innerHTML = d.databases.map(db =>
@@ -1949,7 +2473,7 @@ async function ciSearch() {
 
   try {
     const body = {}; body[type] = val;
-    const res = await fetch('/api/ci-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch('/api/ci-search', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     const data = await res.json();
 
     if (!data.success) { container.innerHTML = '<div style="color:var(--accent);padding:12px;">' + (data.error || 'Search failed') + '</div>'; return; }
@@ -2018,7 +2542,7 @@ async function fetchBehaviorScore(searchBody) {
   container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;"><span class="spinner"></span> Calculating behavior score...</div>';
 
   try {
-    const res = await fetch('/api/behavior-score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(searchBody) });
+    const res = await fetch('/api/behavior-score', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(searchBody) });
     const data = await res.json();
 
     if (!data.success) { container.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">Could not calculate score: ' + (data.error || '') + '</div>'; return; }
@@ -2086,7 +2610,7 @@ async function ciUpload() {
   fd.append('collection', collection);
 
   try {
-    const res = await fetch('/api/ci-upload', { method: 'POST', body: fd });
+    const res = await fetch('/api/ci-upload', { method: 'POST', headers: authHeaders(), body: fd });
     const data = await res.json();
     if (data.success) {
       container.innerHTML = '<div style="color:var(--accent2);padding:8px;font-weight:600;"><i class="fa-solid fa-circle-check"></i> ' + data.message + '</div>';
@@ -2168,6 +2692,8 @@ function toggleDocPanel() {
 
 <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+</div><!-- /app-container -->
 
 </body>
 </html>

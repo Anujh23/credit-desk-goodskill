@@ -5,15 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 import uuid
 import os
+import jwt
 import xml.etree.ElementTree as ET
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from scoring import calculate_sanction
 from analyzer import analyze_transactions
 from database import (search_customer, list_products, process_uploaded_files,
                        save_bank_statement, search_bank_statements, get_bank_statement, delete_bank_statement,
-                       calculate_behavior_score, init_db)
+                       calculate_behavior_score, init_db, verify_user, log_activity)
 
 load_dotenv()
 
@@ -72,6 +73,66 @@ def safe_request(method, url, **kwargs):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
+JWT_SECRET = os.getenv("JWT_SECRET", "creditdesk-jwt-secret-key-2024")
+JWT_EXPIRY_HOURS = 12
+
+
+def get_current_user(request: Request) -> str:
+    """Extract username from JWT in Authorization header. Returns 'anonymous' if missing/invalid."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            payload = jwt.decode(auth_header[7:], JWT_SECRET, algorithms=["HS256"])
+            return payload.get("sub", "anonymous")
+        except Exception:
+            pass
+    return "anonymous"
+
+
+def track(request: Request, action: str, details: str = None):
+    """Log user activity with IP address."""
+    username = get_current_user(request)
+    ip = request.client.host if request.client else None
+    log_activity(username, action, details, ip)
+
+
+# ─── Auth Routes ─────────────────────────────────────────────
+
+@app.post("/api/auth/login")
+async def auth_login(request: Request):
+    body = await request.json()
+    username = body.get("username", "").strip()
+    password = body.get("password", "")
+    if not username or not password:
+        return JSONResponse(content={"error": "Username and password required"}, status_code=400)
+    user = verify_user(username, password)
+    if not user:
+        return JSONResponse(content={"error": "Invalid username or password"}, status_code=401)
+    payload = {
+        "sub": user["username"],
+        "role": user["role"],
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
+        "iat": datetime.now(timezone.utc),
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    log_activity(username, "LOGIN", "JWT login", request.client.host if request.client else None)
+    return {"token": token, "username": user["username"], "role": user["role"]}
+
+
+@app.post("/api/auth/verify")
+async def auth_verify(request: Request):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JSONResponse(content={"valid": False}, status_code=401)
+    try:
+        payload = jwt.decode(auth_header[7:], JWT_SECRET, algorithms=["HS256"])
+        return {"valid": True, "username": payload["sub"], "role": payload["role"]}
+    except jwt.ExpiredSignatureError:
+        return JSONResponse(content={"valid": False, "error": "Token expired"}, status_code=401)
+    except jwt.InvalidTokenError:
+        return JSONResponse(content={"valid": False, "error": "Invalid token"}, status_code=401)
+
+
 # ─── Page Routes ─────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -85,6 +146,7 @@ async def index():
 @app.post("/calculate")
 async def calculate(request: Request):
     data = await request.json()
+    track(request, "LOAN_CALCULATE", f"Amount: {data.get('loan_amount')}")
     loan_amount = data["loan_amount"]
     start_date = datetime.strptime(data["start_date"], "%Y-%m-%d")
     end_date = datetime.strptime(data["end_date"], "%Y-%m-%d")
@@ -133,6 +195,7 @@ async def login(request: Request):
 async def consent_request(request: Request):
     """2. Create Consent Request."""
     data = await request.json()
+    track(request, "CONSENT_REQUEST", f"CustId: {data.get('custId')}")
     token = data.pop("token")
     payload = {
         "header": get_header(),
@@ -151,6 +214,7 @@ async def consent_request(request: Request):
 async def consent_request_plus(request: Request):
     """3. Consent Request Plus (CRP) - used for periodic consent."""
     data = await request.json()
+    track(request, "CONSENT_REQUEST_PLUS", f"CustId: {data.get('custId')}")
     token = data.pop("token")
     body = {
         "custId": data["custId"],
@@ -192,6 +256,7 @@ async def consent_details(request: Request):
 async def fi_request(request: Request):
     """6. FI Request - Request financial information."""
     data = await request.json()
+    track(request, "FI_REQUEST", f"CustId: {data.get('custId')}")
     token = data.pop("token")
     payload = {
         "header": get_header(),
@@ -222,6 +287,7 @@ async def fi_status(request: Request):
 async def fi_data_fetch(request: Request):
     """8. FI Data Fetch - Get actual financial data."""
     data = await request.json()
+    track(request, "FI_DATA_FETCH", f"ConsentHandle: {data.get('consentHandle')}")
     token = data["token"]
     consent_handle = data["consentHandle"]
     session_id = data["sessionId"]
@@ -304,6 +370,7 @@ async def analyze_statement(request: Request):
     """Analyze bank transactions server-side. Patterns never reach the browser."""
     try:
         data = await request.json()
+        track(request, "ANALYZE_STATEMENT", f"Txn count: {len(data.get('transactions', []))}")
         transactions = data.get('transactions', [])
         if not transactions:
             return JSONResponse(content={"error": "No transactions provided"}, status_code=400)
@@ -317,6 +384,7 @@ async def analyze_statement(request: Request):
 async def analyze_credit(request: Request):
     try:
         data = await request.json()
+        track(request, "CREDIT_ANALYSIS", f"Income: {data.get('monthly_income')}, CIBIL: {data.get('cibil')}")
         required = ['monthly_income', 'fixed_obligations', 'cibil', 'cibil_overdue', 'emi_loan', 'payday_running', 'residence_type', 'enach_bounce']
         for f in required:
             if f not in data:
@@ -391,6 +459,7 @@ async def ci_databases():
 async def ci_search(request: Request):
     """Search records by PAN, Name, or Mobile across all products."""
     data = await request.json()
+    track(request, "CI_SEARCH", f"PAN: {data.get('pan')}, Name: {data.get('name')}, Mobile: {data.get('mobile')}")
     if not any([data.get("pan"), data.get("name"), data.get("mobile")]):
         return JSONResponse(content={"error": "At least one search parameter required"}, status_code=400)
     try:
@@ -404,6 +473,7 @@ async def ci_search(request: Request):
 async def behavior_score(request: Request):
     """Calculate customer behavior score from loan history."""
     data = await request.json()
+    track(request, "BEHAVIOR_SCORE", f"PAN: {data.get('pan')}, Name: {data.get('name')}, Mobile: {data.get('mobile')}")
     if not any([data.get("pan"), data.get("name"), data.get("mobile")]):
         return JSONResponse(content={"error": "Provide PAN, name, or mobile to search"}, status_code=400)
     try:
@@ -414,8 +484,9 @@ async def behavior_score(request: Request):
 
 
 @app.post("/api/ci-upload")
-async def ci_upload(disbursed: UploadFile = File(...), collection: UploadFile = File(...)):
+async def ci_upload(request: Request, disbursed: UploadFile = File(...), collection: UploadFile = File(...)):
     """Upload disbursed and collection CSV files."""
+    track(request, "CI_UPLOAD", f"Files: {disbursed.filename}, {collection.filename}")
     import pandas as pd
     from io import StringIO, BytesIO
 
@@ -470,6 +541,7 @@ async def ci_export(request: Request):
 async def api_save_statement(request: Request):
     """Save a fetched bank statement to the database."""
     data = await request.json()
+    track(request, "SAVE_STATEMENT", f"Customer: {data.get('account', {}).get('holderName', 'unknown')}")
     account_data = data.get("account")
     if not account_data:
         return JSONResponse(content={"error": "No account data provided"}, status_code=400)
@@ -484,6 +556,7 @@ async def api_save_statement(request: Request):
 async def api_search_statements(request: Request):
     """Search saved bank statements by customer name or mobile."""
     data = await request.json()
+    track(request, "SEARCH_STATEMENTS", f"Name: {data.get('name')}, Mobile: {data.get('mobile')}")
     name = data.get("name")
     mobile = data.get("mobile")
     if not name and not mobile:
@@ -508,8 +581,9 @@ async def api_get_statement(statement_id: int):
 
 
 @app.delete("/api/delete-statement/{statement_id}")
-async def api_delete_statement(statement_id: int, admin_key: str = Query(..., description="Admin key required to delete data")):
+async def api_delete_statement(request: Request, statement_id: int, admin_key: str = Query(..., description="Admin key required to delete data")):
     """Delete a saved bank statement. Requires admin key."""
+    track(request, "DELETE_STATEMENT", f"Statement ID: {statement_id}")
     expected_key = os.getenv("ADMIN_DELETE_KEY", "creditdesk-admin-delete")
     if admin_key != expected_key:
         return JSONResponse(content={"error": "Unauthorized. Admin access required to delete data."}, status_code=403)
