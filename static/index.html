@@ -761,7 +761,7 @@
           <div class="card">
             <div class="card-title"><div class="icon"><i class="fa-solid fa-mobile-screen"></i></div> Request Bank Access</div>
             <p style="font-size:13px; color:var(--ink-light); margin-bottom:18px;">Enter the customer's mobile number to send a bank statement access request.</p>
-            <div class="field"><label>Customer Mobile Number (xxx@finvu)</label><input type="text" id="cs-custId" placeholder="e.g. 9878641035" /></div>
+            <div class="field"><label>Customer Mobile Number (<span style="text-transform:lowercase">xxx@finvu</span>)</label><input type="text" id="cs-custId" placeholder="e.g. 9878641035@finvu" /></div>
             <input type="hidden" id="cs-consentType" value="periodic" />
             <button class="btn btn-blue" id="cs-consentBtn" onclick="csCreateConsent()"><i class="fa-solid fa-paper-plane"></i> Send Access Request</button>
             <div id="cs-consentResult" style="display:none; margin-top:16px;">
