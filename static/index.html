@@ -995,6 +995,12 @@
           <div class="card-title"><div class="icon" style="background:#ede9fe;"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#7c3aed;"></i></div> Frequent Transfers</div>
           <div id="analysis-freq"></div>
         </div>
+
+        <!-- Top 10 Transactions -->
+        <div class="card" style="margin-bottom:20px;" id="analysis-top10-card">
+          <div class="card-title"><div class="icon" style="background:#fef3c7;"><i class="fa-solid fa-ranking-star" style="color:#b45309;"></i></div> Top 10 Transactions</div>
+          <div id="analysis-top10"></div>
+        </div>
       </div>
     </div>
 
@@ -1077,7 +1083,7 @@
     <div class="page" id="page-customer-behavior">
       <div class="page-header">
         <h2>Customer Behavior</h2>
-        <p>Search customer payment records, run queries, and upload data files</p>
+        <p>Search customer payment records and run queries</p>
       </div>
       <div style="max-width:1100px;">
 
@@ -1113,27 +1119,6 @@
           <div id="ci-search-result" style="margin-top:16px;"></div>
         </div>
 
-        <!-- Upload Section -->
-        <div class="card">
-          <div class="card-title" style="cursor:pointer;" onclick="document.getElementById('ci-upload-body').style.display = document.getElementById('ci-upload-body').style.display==='none'?'block':'none'">
-            <div class="icon" style="background:#f0fdf4;"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--accent2);"></i></div> Upload Data Files
-            <i class="fa-solid fa-chevron-down" style="margin-left:auto; color:var(--ink-light); font-size:12px;"></i>
-          </div>
-          <div id="ci-upload-body" style="display:none;">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px;">
-              <div class="field" style="margin-bottom:0;">
-                <label>Disbursed File (CSV/Excel)</label>
-                <input type="file" id="ci-file-disbursed" accept=".csv,.xlsx,.xls" style="font-size:13px;" />
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Collection File (CSV/Excel)</label>
-                <input type="file" id="ci-file-collection" accept=".csv,.xlsx,.xls" style="font-size:13px;" />
-              </div>
-            </div>
-            <button class="btn btn-green" style="width:180px;" onclick="ciUpload()"><i class="fa-solid fa-cloud-arrow-up btn-icon"></i> Process Files</button>
-            <div id="ci-upload-result" style="margin-top:12px;"></div>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -2055,6 +2040,10 @@ async function runAnalysis(idx) {
     document.getElementById('analysis-bounce').innerHTML = renderAnalysisTable(nachBounce, 'DEBIT', 'No NACH bounces found - Good!', true);
     document.getElementById('analysis-freq').innerHTML = renderFrequentTransfers(freqTransfers, s.income_base);
 
+    // Top 10 transactions by amount
+    const top10 = [...txns].sort((a, b) => Math.abs(parseFloat(b.amount || b.Amount || 0)) - Math.abs(parseFloat(a.amount || a.Amount || 0))).slice(0, 10);
+    document.getElementById('analysis-top10').innerHTML = renderTop10Table(top10);
+
   } catch (e) {
     document.getElementById('analysis-summary').innerHTML = '<div style="color:var(--accent);padding:20px;">Analysis error: ' + e.message + '</div>';
   }
@@ -2062,11 +2051,26 @@ async function runAnalysis(idx) {
 
 function renderAnalysisTable(items, type, emptyMsg, isBounce) {
   if (!items.length) return '<div style="color:#999;text-align:center;padding:20px;font-size:13px;">' + emptyMsg + '</div>';
+  items.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   const cls = type === 'CREDIT' ? 'txn-type-credit' : 'txn-type-debit';
   let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>Date</th><th>Narration</th><th style="text-align:right">Amount</th></tr></thead><tbody>';
   items.forEach(t => {
     const d = t.date ? new Date(t.date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'2-digit'}) : '';
     html += '<tr><td style="white-space:nowrap;">' + d + '</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (t.narration||'').replace(/"/g,'&quot;') + '">' + (t.narration||'') + '</td><td class="txn-amount ' + cls + '">' + fmt(t.amount) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderTop10Table(items) {
+  if (!items.length) return '<div style="color:#999;text-align:center;padding:20px;font-size:13px;">No transactions available</div>';
+  let html = '<div class="txn-table-wrap"><table class="txn-table"><thead><tr><th>Date</th><th>Narration</th><th style="text-align:center">Type</th><th style="text-align:right">Amount</th></tr></thead><tbody>';
+  items.forEach(t => {
+    const d = (t.date || t.transactionTimestamp || '') ? new Date(t.date || t.transactionTimestamp).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'2-digit'}) : '';
+    const type = (t.type || t.txnType || '').toUpperCase();
+    const cls = type === 'CREDIT' ? 'txn-type-credit' : 'txn-type-debit';
+    const typeBadge = type === 'CREDIT' ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">Credit</span>' : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">Debit</span>';
+    html += '<tr><td style="white-space:nowrap;">' + d + '</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (t.narration || t.Narration || '').replace(/"/g,'&quot;') + '">' + (t.narration || t.Narration || '') + '</td><td style="text-align:center;">' + typeBadge + '</td><td class="txn-amount ' + cls + '">' + fmt(Math.abs(parseFloat(t.amount || t.Amount || 0))) + '</td></tr>';
   });
   html += '</tbody></table></div>';
   return html;
