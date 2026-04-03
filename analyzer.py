@@ -87,7 +87,7 @@ LOAN_EXCLUDE_PATTERNS = re.compile(
         r'uca\b', r'devmuni', r'ayaan\b',
         r'agarwal\s*assignments', r'digner', r'devashish', r'skyrise',
         r'bazarloan', r'tsb\s*finance', r'cashmypayment',
-        r'loanhub', r'loanforcare', r'salary4sure', r'salarynow',
+        r'loanhub', r'loanforcare', r'salary4sure', r'salary\s*now',
         r'bharatloan', r'gdl\s*leasing', r'agf\b',
         r'mahavira', r'innofinsolu', r'respo',
         r'akara', r'northern\s*arc', r'aman\s*fincap',
@@ -97,6 +97,10 @@ LOAN_EXCLUDE_PATTERNS = re.compile(
         r'altura', r'jublee', r'richman', r'surya.?shakti', r'\bdsg\b',
         r'shreeloan', r'loanprime', r'neena\s*imp',
         r'pawansut', r'tapstart', r'u\.?\s*y\.?\s*finc',
+        r'gagandeep\s*services', r'zed\s*leafin',
+        r'ampire', r'vanshika', r'kisga', r'ramchandra\s*leasing',
+        r'avinash\s*capital', r'julania', r'subhlakshmi',
+        r'flexsalary',
     ]),
     re.IGNORECASE,
 )
@@ -119,43 +123,8 @@ ACH_NACH_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-LENDER_PATTERNS = re.compile(
-    '|'.join([
-        r'bajaj\s?fin', r'bajaj\s*housing', r'lic\s*housing',
-        r'home\s*credit', r'capital\s*first', r'fullerton',
-        r'tata\s?capital', r'piramal', r'shriram', r'sundaram', r'idfc\s*first',
-        r'manappuram', r'muthoot',
-        r'financ', r'fincorp', r'nbfc', r'fincap', r'leasing',
-        r'paysense', r'kreditbee', r'cashe', r'navi\b',
-        r'money\s*tap', r'earlysalary', r'mpokket',
-        r'protium', r'stashfin', r'kissht',
-        r'ola\s*financial', r'pay\s*later', r'branch\s*(?:payment|online)',
-        r'afiloans', r'pawansut',
-        r'sampati', r'unifinz', r'chintamani', r'goldline', r'chinmay',
-        r'rk\s*bansal', r'solomon', r'vaishali',
-        r'd\.?pal', r'day\s*to\s*day', r'goodskill', r'easyfincare',
-        r'agrim', r'naman\s*finlease', r'junoon', r'datta\s*finance',
-        r'gagan\s*metals', r'gaganmetals', r'achiievers', r'sawalsha',
-        r'woodland\s*securities', r'konark', r'kasar', r'tycoon',
-        r'sashi\s*enterprises', r'sashienterprises',
-        r'xpressloan', r'growing', r'sabharwal', r'sabkaloan',
-        r'mahashakti', r'speedo\s*loans', r'salora', r'comero',
-        r'loanpe', r'girdhar', r'fast\s*solutions\s*fin',
-        r'uca\b', r'devmuni', r'ayaan\b',
-        r'agarwal\s*assignments', r'digner', r'devashish', r'skyrise',
-        r'bazarloan', r'tsb\s*finance', r'cashmypayment',
-        r'loanhub', r'loanforcare', r'salary4sure', r'salarynow',
-        r'bharatloan', r'gdl\s*leasing', r'agf\b',
-        r'mahavira', r'innofinsolu', r'respo',
-        r'akara', r'northern\s*arc', r'aman\s*fincap',
-        r'auro\s*fin', r'fincfriend', r'citra', r'ava\s*fina',
-        r'finagle', r'khosya', r'finkurve', r'upmove', r'speel',
-        r'vivifi', r'meghdoo', r'salaryontime', r'minutesloan',
-        r'altura', r'jublee', r'richman', r'surya.?shakti', r'\bdsg\b',
-        r'shreeloan', r'loanprime', r'neena\s*imp',
-    ]),
-    re.IGNORECASE,
-)
+# Reuse LOAN_EXCLUDE_PATTERNS for lender detection on debits too
+LENDER_PATTERNS = LOAN_EXCLUDE_PATTERNS
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -272,39 +241,6 @@ def _extract_destination(narr: str) -> str:
     return ''
 
 
-def _extract_transfer_dest(narr: str) -> str:
-    """Extract receiver/destination from NEFT/RTGS/IMPS debit narrations.
-
-    Common formats:
-      NEFT/BANK/RECEIVER NAME/REF             → "receiver name"
-      NEFT-BANKREF-RECEIVER NAME--ACCTNO      → "receiver name"
-      NEFT REF RECEIVER NEFTINW-              → "receiver"
-    """
-    narr_lower = narr.lower()
-    # Slash-separated: NEFT/BANK/RECEIVER/REF
-    for prefix in ('neft/', 'rtgs/', 'imps/', 'ft neft/', 'ft rtgs/', 'ft imps/'):
-        if narr_lower.startswith(prefix):
-            parts = narr.split('/')
-            if len(parts) >= 3:
-                dest = parts[2].strip().lower()
-                if dest and len(dest) >= 3:
-                    return dest
-            if len(parts) >= 2:
-                dest = parts[1].strip().lower()
-                if dest and len(dest) >= 3:
-                    return dest
-
-    # Dash-separated (ICICI etc): NEFT-BANKREF-RECEIVER--ACCTNO
-    m = re.match(r'^(?:neft|rtgs)[\s-]+\S+-(.+?)(?:--|\s*$)', narr, re.IGNORECASE)
-    if m:
-        dest = m.group(1).strip()
-        dest = re.sub(r'[-\s]*\d{5,}.*$', '', dest).strip()
-        if dest and len(dest) >= 3:
-            return dest.lower()
-
-    return ''
-
-
 def _parse_date_obj(date_str: str):
     """Try to parse a date string into a datetime object."""
     if not date_str:
@@ -337,6 +273,7 @@ def _parse_date_obj(date_str: str):
 #            • UPI from person names ("Payment fr") → SKIP
 #            • Known loan disbursers → SKIP
 #            • Only 1 occurrence → SKIP (not recurring)
+#            • More than 2 transactions below ₹20,000 → SKIP (too small for salary)
 #   Step 4 — For surviving groups, pick ONE credit per month (the largest)
 #   Step 5 — Check hike-aware stability:
 #            • Amount can go UP (hike) or stay flat (±10%)
@@ -388,6 +325,26 @@ NOT_SALARY_SOURCES = re.compile(
 )
 
 
+def _is_self_transfer(narr: str) -> bool:
+    """Detect own account transfers where sender name appears twice in narration.
+    e.g. 'NEFT CR-UBIN0808172-KONENI REDDY PADMAJA-KONENI REDDY PADMAJA-002593691359'
+    """
+    narr_upper = narr.upper()
+    # Split NEFT/RTGS/IMPS narrations by '-' and check for repeated name segments
+    parts = [p.strip() for p in narr_upper.split('-') if p.strip()]
+    # Filter out short parts (bank codes, refs, numbers)
+    name_parts = [p for p in parts if len(p) >= 4 and not p.isdigit()
+                  and not re.match(r'^[A-Z]{4}\d+$', p)  # bank IFSC like UBIN0808172
+                  and not re.match(r'^(NEFT|RTGS|IMPS|UPI|FT)\b', p)
+                  and not re.match(r'^(CR|DR)$', p)]
+    # If same name appears 2+ times, it's a self-transfer
+    for i, a in enumerate(name_parts):
+        for b in name_parts[i + 1:]:
+            if a == b and len(a) >= 5:
+                return True
+    return False
+
+
 def _extract_source(narr: str) -> str:
     """Extract payer/source identifier from a CREDIT narration for grouping."""
     narr_lower = narr.lower()
@@ -406,8 +363,11 @@ def _extract_source(narr: str) -> str:
     m = re.match(r'^(?:neft|rtgs|ft\s*neft|ft\s*rtgs)[\s-]+\S+-(.+?)(?:--|\s*$)', narr, re.IGNORECASE)
     if m:
         sender = m.group(1).strip()
-        # Remove trailing account numbers/refs (all digits or dash-separated digits)
-        sender = re.sub(r'[-\s]*\d{5,}.*$', '', sender).strip()
+        # Remove trailing reference codes: digits, dash-digit groups, alphanumeric refs
+        # e.g. "WIPRO LIMITED 2244-0001-0009" → "WIPRO LIMITED"
+        # e.g. "ACCENTURE SOLUTIONS PVT LTD--72447190" → "ACCENTURE SOLUTIONS PVT LTD"
+        sender = re.sub(r'[-\s]+[\d][\d\-]*$', '', sender).strip()
+        sender = re.sub(r'[-\s]+[A-Z]?\d{3,}.*$', '', sender).strip()
         if sender and len(sender) >= 3:
             return sender.lower()
 
@@ -455,6 +415,9 @@ def _extract_source(narr: str) -> str:
     return re.sub(r'\s+', ' ', narr[:40]).strip().lower()
 
 
+_extract_transfer_dest = _extract_source
+
+
 def _get_transfer_mode(narr: str) -> str:
     """Classify transfer mode: 'neft_rtgs', 'imps', 'upi', or 'other'."""
     narr_lower = narr.lower()
@@ -481,13 +444,19 @@ def _is_upi_p2p(narr: str) -> bool:
     # "Payment fr", "pay to", "transfer" → P2P
     if re.search(r'payment\s*fr|pay\s*to|transfer|sent|received', narr_lower):
         return True
-    # Person name sender (1-2 words, no company keywords)
-    parts = narr.split('/')
-    if len(parts) >= 2:
-        sender = parts[1].strip()
-        words = sender.split()
-        if 1 <= len(words) <= 3 and not COMPANY_PATTERNS.search(sender):
-            return True
+    # Person name sender — split by '/' or '-' (both formats exist)
+    # Format 1: UPI/SENDER/UPI_ID/REF
+    # Format 2: UPI-SENDER-UPI_ID@BANK-IFSC-REF
+    for sep in ['/', '-']:
+        parts = narr.split(sep)
+        if len(parts) >= 2:
+            sender = parts[1].strip()
+            words = sender.split()
+            if 1 <= len(words) <= 3 and not COMPANY_PATTERNS.search(sender):
+                # Extra check for '-' split: make sure sender isn't a bank code or ref number
+                if sep == '-' and (re.match(r'^[A-Z]{4}\d+$', sender) or sender.isdigit()):
+                    continue
+                return True
     return False
 
 
@@ -506,23 +475,26 @@ def _pick_one_per_month(txns: list[dict]) -> list[dict]:
     return picked
 
 
-def _check_hike_aware_stability(amounts: list[float]) -> dict:
+def _check_hike_aware_stability(amounts: list[float], max_drop: float = None) -> dict:
     """
     Check if month-to-month amount changes look like salary (with possible hikes).
 
     Rules for each consecutive pair:
       • Amount goes UP by any %     → OK (hike / bonus component)
       • Stays within ±10%           → OK (normal salary variation)
-      • Drops ≤25%                  → OK (tax adjustment, fewer days)
-      • Drops >25%                  → BAD (random P2P pattern)
+      • Drops ≤max_drop             → OK (tax adjustment, fewer days, bonus spike)
+      • Drops >max_drop             → BAD (random P2P pattern)
 
     Returns dict with:
       stable_pairs : count of OK pairs
-      bad_pairs    : count of BAD pairs (>25% drops)
+      bad_pairs    : count of BAD pairs
       total_pairs  : total consecutive pairs
       stability    : ratio of OK pairs (0.0–1.0)
       latest_amount: most recent month's amount (for "current salary")
     """
+    if max_drop is None:
+        max_drop = SALARY_BIG_DROP_PCT
+
     if len(amounts) < 2:
         return {
             'stable_pairs': 0, 'bad_pairs': 0, 'total_pairs': 0,
@@ -539,16 +511,12 @@ def _check_hike_aware_stability(amounts: list[float]) -> dict:
         change = (curr - prev) / prev
 
         if change >= 0:
-            # Went up or stayed same → OK (hike or stable)
             stable += 1
         elif change >= -0.10:
-            # Minor drop within 10% → OK (normal variation)
             stable += 1
-        elif change >= -SALARY_BIG_DROP_PCT:
-            # Moderate drop 10-25% → OK (tax change, etc)
+        elif change >= -max_drop:
             stable += 1
         else:
-            # Big drop >25% → red flag
             bad += 1
 
     total = len(amounts) - 1
@@ -600,6 +568,14 @@ def _detect_salary(transactions: list[dict]) -> list[dict]:
 
         # NEVER salary: known non-salary sources (Zomato, Swiggy, Amazon, etc)
         if NOT_SALARY_SOURCES.search(narr):
+            continue
+
+        # NEVER salary: own account transfers (sender name = account holder)
+        if _is_self_transfer(narr_raw):
+            continue
+
+        # NEVER salary: MMT/IMPS bill payments / personal transfers
+        if re.match(r'^mmt/imps/', narr):
             continue
 
         entry = {
@@ -677,6 +653,11 @@ def _detect_salary(transactions: list[dict]) -> list[dict]:
         if len(group_txns) < SALARY_MIN_MONTHS:
             continue
 
+        # --- Filter: skip if more than 2 transactions below ₹20,000 ---
+        low_amount_count = sum(1 for t in group_txns if t['amount'] < 20000)
+        if low_amount_count > 2:
+            continue
+
         # --- Pick one credit per month (the largest) ---
         monthly = _pick_one_per_month(group_txns)
         if len(monthly) < SALARY_MIN_MONTHS:
@@ -689,7 +670,10 @@ def _detect_salary(transactions: list[dict]) -> list[dict]:
         months_detected = len(set((d.year, d.month) for d in dates))
 
         # --- Check hike-aware stability ---
-        stability = _check_hike_aware_stability(amounts)
+        has_company = any(t['has_company_pattern'] for t in group_txns)
+        # Companies get a higher drop tolerance (bonuses cause spikes)
+        drop_pct = 0.40 if has_company else SALARY_BIG_DROP_PCT
+        stability = _check_hike_aware_stability(amounts, max_drop=drop_pct)
 
         # If too many big drops → not salary
         if stability['total_pairs'] > 0:
@@ -700,8 +684,6 @@ def _detect_salary(transactions: list[dict]) -> list[dict]:
         # --- Compute transfer mode for the group ---
         modes = [t['mode'] for t in group_txns]
         primary_mode = max(set(modes), key=modes.count)
-
-        has_company = any(t['has_company_pattern'] for t in group_txns)
 
         # --- Build confidence score ---
         base_score = stability['stability']
@@ -852,8 +834,6 @@ def analyze_transactions(transactions: list[dict]) -> dict[str, Any]:
         if is_lender and amt >= 500 and (is_ach_nach or is_ecom or SALARY_TRANSFER_MODE.search(narr) or is_upi or is_pg_pcd or is_bil):
             emi_loans.append(row)
         elif is_ach_nach and amt >= 500:
-            emi_loans.append(row)
-        elif amt >= 500 and (is_upi or is_ecom) and EMI_UPI_STRICT.search(narr):
             emi_loans.append(row)
         elif amt >= 500 and EMI_UPI_STRICT.search(narr):
             emi_loans.append(row)
