@@ -620,7 +620,7 @@
 <!-- ═══════════ APP (hidden until auth) ═══════════ -->
 <div id="app-container">
 <header>
-  <div class="logo-mark"><img src="/static/Everyday Loan.png" alt="CreditDesk Logo"></div>
+  <div class="logo-mark"><img src="/static/NBL-Logo.png" alt="CreditDesk Logo"></div>
   <h1>CreditDesk</h1>
   <div class="header-right">
     <span id="currentDate"></span>
@@ -2486,13 +2486,16 @@ async function ciSearch() {
     ciResults = data.records;
     const cols = ['Name', 'Mobile', 'Repay_Date', 'Collected_Date', 'PaymentStatus'];
     const labels = { Name: 'Name', Mobile: 'Mobile', Repay_Date: 'Repay Date', Collected_Date: 'Collection Date', PaymentStatus: 'Payment Status' };
-    const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed' };
+    const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed', PART_PAYMENT: '#f59e0b' };
 
-    // Parse date for sorting (DD-MM-YYYY format)
+    // Parse date for sorting (YYYY-MM-DD or DD-MM-YYYY)
     function parseRepayDate(d) {
       if (!d || d === '-') return 0;
       const parts = String(d).split('-');
-      if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+      if (parts.length === 3) {
+        if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+        return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
+      }
       return new Date(d).getTime() || 0;
     }
 
@@ -2584,7 +2587,7 @@ async function fetchBehaviorScore(searchBody) {
     const ps = data.payment_summary;
     if (ps) {
       html += '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">';
-      const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed' };
+      const statusColors = { EARLY: '#059669', ON_TIME: '#2563eb', GRACE_PERIOD: '#d97706', LATE: '#dc2626', NOT_COLLECTED: '#6b7280', PRECLOSE: '#7c3aed', PART_PAYMENT: '#f59e0b' };
       for (const [st, count] of Object.entries(ps)) {
         if (count > 0) {
           const clr = statusColors[st] || '#6b7280';

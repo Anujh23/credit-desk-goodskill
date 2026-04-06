@@ -744,16 +744,16 @@ def parse_date_flexible(date_val):
 
 
 def standardize_date_column(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-    """Standardize date column to DD-MM-YYYY format."""
+    """Standardize date column to YYYY-MM-DD format."""
     if column_name not in df.columns:
         return df
-    
+
     df = df.copy()
     def _safe_format_date(x):
         parsed = parse_date_flexible(x)
         if parsed and parsed is not pd.NaT:
             try:
-                return parsed.strftime('%d-%m-%Y')
+                return parsed.strftime('%Y-%m-%d')
             except (ValueError, AttributeError):
                 return None
         return None
@@ -761,19 +761,73 @@ def standardize_date_column(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     return df
 
 
-def determine_payment_status(collected_date: Optional[datetime], repay_date: Optional[datetime], status: str = None) -> str:
-    """Determine payment status based on collection and repayment dates."""
-    # Check for preclose status first
-    if status and status.lower() == 'payday preclose':
-        return "PRECLOSE"
-    
-    # Parse dates flexibly
+def determine_payment_status(collected_date: Optional[datetime], repay_date: Optional[datetime], status: str = None,
+                             loan_amount: float = None, total_collected: float = None,
+                             disbursed_status: str = None) -> str:
+    """
+    Determine payment status using latest collection entry.
+
+    Logic:
+      1. No collection entry at all → NOT_COLLECTED
+      2. Latest collection status is preclose/settlement → PRECLOSE
+      3. Latest collection status is "Part Payment" → check amounts or disbursed status
+      4. Loan is closed → compare collection date vs repay date for timing
+    """
     collected_date = parse_date_flexible(collected_date)
     repay_date = parse_date_flexible(repay_date)
-    
-    if not collected_date or not repay_date:
+
+    # Step 1: No collection at all
+    if not collected_date:
         return "NOT_COLLECTED"
-    
+
+    # Step 2: Check latest collection status
+    if status:
+        s = status.lower().strip()
+
+        # Preclose / Settlement → done early
+        if 'preclose' in s or s == 'settlement':
+            return "PRECLOSE"
+
+        # Still in part payment → check if actually fully paid
+        if s == 'part payment':
+            # If disbursed says Closed, trust it — loan is settled
+            if disbursed_status:
+                ds = disbursed_status.lower().strip()
+                if ds == 'closed' or 'preclose' in ds or ds == 'settlement':
+                    pass  # Fall through to date comparison
+                else:
+                    # Disbursed also says Part Payment or Disbursed → truly partial
+                    if loan_amount and total_collected:
+                        try:
+                            loan_amt = float(str(loan_amount).replace(',', ''))
+                            total_col = float(total_collected)
+                            if loan_amt > 0 and total_col >= loan_amt * 0.90:
+                                pass  # Essentially paid
+                            else:
+                                return "PART_PAYMENT"
+                        except (ValueError, TypeError):
+                            return "PART_PAYMENT"
+                    else:
+                        return "PART_PAYMENT"
+            else:
+                # No disbursed status, check amounts
+                if loan_amount and total_collected:
+                    try:
+                        loan_amt = float(str(loan_amount).replace(',', ''))
+                        total_col = float(total_collected)
+                        if loan_amt > 0 and total_col >= loan_amt * 0.90:
+                            pass
+                        else:
+                            return "PART_PAYMENT"
+                    except (ValueError, TypeError):
+                        return "PART_PAYMENT"
+                else:
+                    return "PART_PAYMENT"
+
+    # Step 3: Loan is closed/collected → check timing
+    if not repay_date:
+        return "NOT_COLLECTED"
+
     if collected_date < repay_date:
         return "EARLY"
     elif collected_date == repay_date:
@@ -839,9 +893,21 @@ def search_customer(pan: str = None, name: str = None, mobile: str = None, case_
                     c."Collected_Date" AS "Collected_Date",
                     c."Collected_Amount" AS "Collected_Amount",
                     c."Status" AS "Collection_Status",
+                    ct."Total_Collected" AS "Total_Collected",
                     %s AS "_product"
              FROM {d_table} d
-             LEFT JOIN {c_table} c ON d."LeadID" = c."LeadID" AND d."Loan_No" = c."Loan_No"
+             LEFT JOIN LATERAL (
+                 SELECT cc."Collected_Date", cc."Collected_Amount", cc."Status"
+                 FROM {c_table} cc
+                 WHERE cc."Loan_No" = d."Loan_No"
+                 ORDER BY cc."Collected_Date" DESC, cc.id DESC
+                 LIMIT 1
+             ) c ON true
+             LEFT JOIN LATERAL (
+                 SELECT COALESCE(SUM(CAST(cc2."Collected_Amount" AS NUMERIC)), 0) AS "Total_Collected"
+                 FROM {c_table} cc2
+                 WHERE cc2."Loan_No" = d."Loan_No"
+             ) ct ON true
              WHERE {where_clause})
         """)
         all_params.append(product)
@@ -853,7 +919,7 @@ def search_customer(pan: str = None, name: str = None, mobile: str = None, case_
     with get_db_connection() as conn:
         try:
             with conn.cursor() as cur:
-                query = ' UNION ALL '.join(union_parts) + ' ORDER BY "Repay_Date"'
+                query = ' UNION ALL '.join(union_parts) + ' ORDER BY "Repay_Date" DESC'
                 cur.execute(query, tuple(all_params))
 
                 for row in cur.fetchall():
@@ -861,10 +927,16 @@ def search_customer(pan: str = None, name: str = None, mobile: str = None, case_
                     result['RepayDate'] = result.get('Repay_Date')
                     result['CollectionDate'] = result.get('Collected_Date')
                     result['Loan_Amount'] = result.get('Loan_Amount') or result.get('Loan_Amount_Approved') or result.get('LoanAmount')
+                    col_status = result.get('Collection_Status')
+                    disb_status = result.get('Status')
+                    effective_status = col_status if col_status else disb_status
                     result['PaymentStatus'] = determine_payment_status(
                         result.get('Collected_Date'),
                         result.get('Repay_Date'),
-                        result.get('Collection_Status')
+                        effective_status,
+                        loan_amount=result.get('Loan_Amount'),
+                        total_collected=result.get('Total_Collected'),
+                        disbursed_status=disb_status,
                     )
                     result['Product'] = result.pop('_product', '').upper()
                     all_results.append(result)
@@ -892,7 +964,7 @@ def calculate_behavior_score(pan: str = None, name: str = None, mobile: str = No
     from datetime import date
 
     # --- 1. Payment Timeliness (0-10) ---
-    status_counts = {'EARLY': 0, 'ON_TIME': 0, 'GRACE_PERIOD': 0, 'LATE': 0, 'NOT_COLLECTED': 0, 'PRECLOSE': 0}
+    status_counts = {'EARLY': 0, 'ON_TIME': 0, 'GRACE_PERIOD': 0, 'LATE': 0, 'NOT_COLLECTED': 0, 'PRECLOSE': 0, 'PART_PAYMENT': 0}
     for r in records:
         st = r.get('PaymentStatus', 'NOT_COLLECTED')
         status_counts[st] = status_counts.get(st, 0) + 1
@@ -903,14 +975,15 @@ def calculate_behavior_score(pan: str = None, name: str = None, mobile: str = No
         good = status_counts['EARLY'] + status_counts['ON_TIME'] + status_counts['PRECLOSE']
         ok = status_counts['GRACE_PERIOD']
         bad = status_counts['LATE']
-        timeliness = min(10, round((good * 10 + ok * 6 + bad * 2) / collected, 1))
+        partial = status_counts['PART_PAYMENT']
+        timeliness = min(10, round((good * 10 + ok * 6 + bad * 2 + partial * 3) / collected, 1))
     else:
         # All loans are NOT_COLLECTED — new customer, give neutral score
         timeliness = 5
         timeliness_pending = True
 
     # --- 2. CIBIL Score (0-10) ---
-    cibil_values = [int(r.get('Cibil') or 0) for r in records if r.get('Cibil')]
+    cibil_values = [int(float(r.get('Cibil'))) for r in records if r.get('Cibil') and str(r.get('Cibil')).strip().replace(',','').replace('.','',1).isdigit()]
     avg_cibil = round(sum(cibil_values) / len(cibil_values)) if cibil_values else 0
     if avg_cibil >= 751: cibil_pts = 10
     elif avg_cibil >= 701: cibil_pts = 8
