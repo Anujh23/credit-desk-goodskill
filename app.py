@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File, Query
+from fastapi import FastAPI, Request, UploadFile, File, Query, logger
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
