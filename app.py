@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import requests
+import re
 import uuid
 import os
 import jwt
@@ -14,7 +15,8 @@ from scoring import calculate_sanction
 from analyzer import analyze_transactions
 from database import (search_customer, list_products, process_uploaded_files,
                        save_bank_statement, search_bank_statements, get_bank_statement, delete_bank_statement,
-                       calculate_behavior_score, init_db, verify_user, log_activity)
+                       calculate_behavior_score, init_db, verify_user, log_activity,
+                       insert_credit_analysis, update_credit_analysis_pd)
 
 load_dotenv()
 
@@ -414,8 +416,32 @@ async def analyze_credit(request: Request):
         if processed['enach_bounce'] > 10:
             rejection_reasons.append('Too many eNACH Bounces')
 
+        username = get_current_user(request)
+
         if rejection_reasons:
+            # Log rejected analysis to DB
+            try:
+                row_id = insert_credit_analysis({
+                    'created_by': username,
+                    'monthly_salary': processed['monthly_income'],
+                    'cibil_score': processed['cibil'],
+                    'cibil_overdue': processed['cibil_overdue'],
+                    'active_emi': processed['emi_loan'],
+                    'payday_loans': processed['payday_running'],
+                    'residence_type': processed['residence_type'],
+                    'enach_bounces': processed['enach_bounce'],
+                    'status': 'Cannot be Approved',
+                    'worthiness_score': 0,
+                    'obligation_pct': 0,
+                    'sanction_pct_min': 0, 'sanction_pct_max': 0,
+                    'sanction_min': 0, 'sanction_max': 0,
+                })
+            except Exception as e:
+                logger.warning(f"Failed to log credit analysis: {e}")
+                row_id = None
+
             return {
+                'analysis_id': row_id,
                 'approval_status': 'Cannot be Approved',
                 'customer_worthiness': 0,
                 'max_score': 10.0,
@@ -426,7 +452,39 @@ async def analyze_credit(request: Request):
             }
 
         result = calculate_sanction(processed)
+
+        # Parse sanction range for DB storage
+        sanction_min = result.get('sanction_percentage', [0, 0])[0]
+        sanction_max = result.get('sanction_percentage', [0, 0])[1]
+        # Parse sanction amount range (e.g. "₹12,000 - ₹15,000")
+        amounts = re.findall(r'[\d,]+', result.get('sanction_amount_range', ''))
+        s_min = int(amounts[0].replace(',', '')) if len(amounts) >= 1 else 0
+        s_max = int(amounts[1].replace(',', '')) if len(amounts) >= 2 else s_min
+
+        try:
+            row_id = insert_credit_analysis({
+                'created_by': username,
+                'monthly_salary': processed['monthly_income'],
+                'cibil_score': processed['cibil'],
+                'cibil_overdue': processed['cibil_overdue'],
+                'active_emi': processed['emi_loan'],
+                'payday_loans': processed['payday_running'],
+                'residence_type': processed['residence_type'],
+                'enach_bounces': processed['enach_bounce'],
+                'status': result['decision'],
+                'worthiness_score': round(result['final_score'], 1),
+                'obligation_pct': round(result['obligation_ratio'], 1),
+                'sanction_pct_min': round(sanction_min, 2),
+                'sanction_pct_max': round(sanction_max, 2),
+                'sanction_min': s_min,
+                'sanction_max': s_max,
+            })
+        except Exception as e:
+            logger.warning(f"Failed to log credit analysis: {e}")
+            row_id = None
+
         return {
+            'analysis_id': row_id,
             'approval_status': result['decision'],
             'customer_worthiness': round(result['final_score'], 1),
             'max_score': 10.0,
@@ -439,6 +497,61 @@ async def analyze_credit(request: Request):
         }
     except ValueError as e:
         return JSONResponse(content={"error": f"Invalid input values: {str(e)}"}, status_code=400)
+    except Exception as e:
+        return JSONResponse(content={"error": f"Server error: {str(e)}"}, status_code=500)
+
+
+@app.post("/api/update-pd-details")
+async def update_pd_details(request: Request):
+    """Update PD details on an existing credit analysis row."""
+    try:
+        data = await request.json()
+        analysis_id = data.get('analysis_id')
+        if not analysis_id:
+            return JSONResponse(content={"error": "Missing analysis_id"}, status_code=400)
+
+        track(request, "PD_UPDATE", f"Analysis ID: {analysis_id}, Customer: {data.get('customer_name')}")
+
+        def parse_num(val):
+            """Strip commas, dashes, currency symbols — return float or None."""
+            if val is None: return None
+            cleaned = str(val).replace(',', '').replace('₹', '').replace('-', '').strip()
+            try: return float(cleaned) if cleaned else None
+            except ValueError: return None
+
+        sanction_amount = parse_num(data.get('sanction_amount'))
+        admin_fee = parse_num(data.get('admin_fee'))
+        roi = parse_num(data.get('roi'))
+        repay = data.get('repayment_date') or None
+
+        days_raw = str(data.get('num_days', '') or '').replace('Days', '').replace('days', '').replace('-', '').strip()
+        try: num_days = int(days_raw) if days_raw else None
+        except ValueError: num_days = None
+
+        pd_data = {
+            'customer_name': data.get('customer_name') or None,
+            'location': data.get('location') or None,
+            'case_type': data.get('case_type') or None,
+            'contact_number': data.get('contact_number') or None,
+            'home_address': data.get('home_address') or None,
+            'office_address': data.get('office_address') or None,
+            'salary_bank': data.get('salary_bank') or None,
+            'sanction_amount': sanction_amount,
+            'roi': roi,
+            'admin_fee': admin_fee,
+            'repayment_date': repay,
+            'num_days': num_days,
+            'pd_location_time': data.get('pd_location_time') or None,
+            'verification_type': data.get('verification_type') or None,
+            'remarks': data.get('remarks') or None,
+        }
+
+        updated = update_credit_analysis_pd(analysis_id, pd_data)
+        if updated:
+            return {"success": True, "message": "PD details saved"}
+        else:
+            return JSONResponse(content={"error": "Analysis record not found"}, status_code=404)
+
     except Exception as e:
         return JSONResponse(content={"error": f"Server error: {str(e)}"}, status_code=500)
 

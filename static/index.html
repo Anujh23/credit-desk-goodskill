@@ -1025,6 +1025,7 @@
               <select id="ca-residence">
                 <option value="own house">Own House</option>
                 <option value="rented">Rented</option>
+                <option value="company provided">Company Provided</option>
               </select>
             </div>
             <div class="field" style="margin-bottom:0;"><label>eNACH Bounces (6 months)</label><input type="number" id="ca-enach" placeholder="e.g. 3" min="0" max="10" /></div>
@@ -1032,7 +1033,7 @@
           <button class="btn btn-blue" style="max-width:260px; margin-top:18px;" onclick="analyzeCredit()"><span class="spinner" id="ca-spinner" style="display:none"></span><i class="fa-solid fa-magnifying-glass-dollar btn-icon" id="ca-btn-icon"></i> Analyse Credit</button>
         </div>
         <!-- Result section -->
-        <div class="card">
+        <div class="card" style="margin-bottom:20px;">
           <div class="card-title"><div class="icon" style="background:#f0fdf4;"><i class="fa-solid fa-clipboard-check" style="color:var(--accent2);"></i></div> Analysis Result</div>
           <div class="result-placeholder" id="ca-placeholder"><div class="big-icon"><i class="fa-solid fa-user-check"></i></div><p>Fill in the applicant details and click Analyse to see eligibility.</p></div>
           <div id="ca-results" style="display:none;">
@@ -1075,6 +1076,59 @@
               <div id="ca-doc-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:6px;"></div>
             </div>
           </div>
+        </div>
+        <!-- PD Details card -->
+        <div id="pd-card" class="card" style="margin-bottom:20px; position:relative;">
+          <div id="pd-lock-overlay" style="position:absolute; inset:0; z-index:5; background:rgba(255,255,255,0.7); backdrop-filter:blur(3px); border-radius:inherit; display:flex; align-items:center; justify-content:center; cursor:not-allowed;">
+            <div style="text-align:center; color:#94a3b8;">
+              <i class="fa-solid fa-lock" style="font-size:28px; margin-bottom:8px; display:block;"></i>
+              <span style="font-size:13px; font-weight:600;">Run Credit Analysis first to unlock</span>
+            </div>
+          </div>
+          <div class="card-title"><div class="icon" style="background:#fef3c7;"><i class="fa-solid fa-clipboard-list" style="color:#d97706;"></i></div> PD (Physical Verification) Details</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px 18px;">
+            <div class="field" style="margin-bottom:0;"><label>Customer Name</label><input type="text" id="pd-name" placeholder="e.g. Sandeep NR" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Location</label><input type="text" id="pd-location" placeholder="e.g. Bangalore" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Case Type</label>
+              <select id="pd-casetype">
+                <option value="Fresh">Fresh</option>
+                <option value="Repeat">Repeat</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>Contact Number</label><input type="text" id="pd-contact" placeholder="e.g. 9845822453" /></div>
+            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label>Home Address</label><input type="text" id="pd-address1" placeholder="e.g. #42, 2nd Cross, JP Nagar, Bangalore 560078" /></div>
+            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label>Office Address</label><input type="text" id="pd-address2" placeholder="e.g. #10, 5th Main, Koramangala, Bangalore 560034" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Salary Bank Account Name</label><input type="text" id="pd-bankname" placeholder="e.g. Axis Bank" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Sanction Amount (&#8377;)</label><input type="text" id="pd-sanction" placeholder="Auto-filled after analysis" oninput="formatIndianComma(this); calcAdminFee();" /></div>
+            <div class="field" style="margin-bottom:0;"><label>ROI (% per day)</label><input type="number" id="pd-roi" value="1" step="0.1" min="0" max="5" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Admin Fee (&#8377;)</label><input type="text" id="pd-adminfee" placeholder="e.g. 4,500" oninput="formatIndianComma(this)" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Repayment Date</label><input type="date" id="pd-repaydate" onchange="calcRepayDays()" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Number of Days</label><input type="text" id="pd-days" placeholder="Auto-calculated" readonly style="background:#f1f5f9;color:#475569;" /></div>
+            <div class="field" style="margin-bottom:0;"><label>PD Location / Time</label><input type="text" id="pd-pdlocation" placeholder="e.g. 11/3/2026, 2:00 PM" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Verification Type</label>
+              <select id="pd-verification">
+                <option value="Home Verification">Home Verification</option>
+                <option value="Office Verification">Office Verification</option>
+                <option value="Home + Office">Home + Office</option>
+                <option value="Online">Online</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0; grid-column: span 4;"><label>Remarks</label><textarea id="pd-remarks" rows="2" placeholder="Enter any remarks..." style="width:100%;resize:vertical;"></textarea></div>
+          </div>
+          <div id="pd-form-btn-wrap" style="display:none; margin-top:16px; text-align:center;">
+            <button class="btn btn-blue" style="max-width:320px;" onclick="generatePDForm()"><i class="fa-solid fa-file-lines btn-icon"></i> Generate PD Form</button>
+          </div>
+        </div>
+        <!-- PD Form (printable) -->
+        <div id="pd-form-card" class="card" style="display:none; margin-top:20px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;"><div class="icon" style="background:#fef3c7;"><i class="fa-solid fa-clipboard-list" style="color:#d97706;"></i></div> PD Verification Form</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-blue" style="padding:8px 18px; font-size:12px;" onclick="savePDFormPDF()"><i class="fa-solid fa-file-pdf btn-icon"></i> Save as PDF</button>
+              <button class="btn" style="padding:8px 18px; font-size:12px; background:#059669; color:#fff;" onclick="savePDFormExcel()"><i class="fa-solid fa-file-excel btn-icon"></i> Save as Excel</button>
+            </div>
+          </div>
+          <div id="pd-form-content"></div>
         </div>
       </div>
     </div>
@@ -2348,6 +2402,7 @@ async function analyzeCredit() {
     }
 
     const d = await res.json();
+    window._currentAnalysisId = d.analysis_id || null;
     const approved = d.approval_status === 'Can be Approved';
 
     const statusCard = document.getElementById('ca-stat-status');
@@ -2392,8 +2447,32 @@ async function analyzeCredit() {
     }
     setTimeout(() => banner.classList.add('visible', 'animate'), 300);
 
+    // Capture doc checklist state before reset (for PD form)
+    const docItems = ['Aadhaar Card', 'PAN Card', 'Address Proof', 'Bank Statement', 'Salary Slip',
+      'Employee ID / Offer Letter', 'CIBIL', 'Cheque', 'Video KYC', 'E-Sign', 'Mandate',
+      'Alternative Number', 'Reference Number', 'Official Mail ID / Domain Photo'];
+    let docState = {};
+    try { docState = JSON.parse(localStorage.getItem('fintools_doc_checklist')) || {}; } catch {}
+    window._lastDocState = { items: docItems, state: docState };
+
     // Show document readiness from checklist
     showDocReadiness();
+
+    // Show PD form button (for both approved and rejected — PD officer needs the form)
+    document.getElementById('pd-form-btn-wrap').style.display = approved ? '' : 'none';
+    // Unlock PD card
+    var pdOverlay = document.getElementById('pd-lock-overlay');
+    if (pdOverlay) pdOverlay.style.display = 'none';
+    // Store last analysis data for PD form
+    window._lastCreditResult = d;
+    window._lastCreditInput = { income, obligations, cibil, residence: document.getElementById('ca-residence').value };
+    // Auto-fill sanction amount (editable by credit manager)
+    if (approved) {
+      document.getElementById('pd-sanction').value = d.sanction_amount_range || '';
+      calcAdminFee();
+    }
+    // Hide PD form if re-analyzing
+    document.getElementById('pd-form-card').style.display = 'none';
 
     // Reset document checklist after result is shown
     saveDocChecklist({});
@@ -2442,6 +2521,414 @@ function showDocReadiness() {
     html += '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;font-size:11px;font-weight:600;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;"><i class="fa-regular fa-circle" style="font-size:10px;"></i> ' + i + '</div>';
   });
   listEl.innerHTML = html;
+}
+
+function calcRepayDays() {
+  const repayDate = document.getElementById('pd-repaydate').value;
+  if (!repayDate) { document.getElementById('pd-days').value = ''; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const repay = new Date(repayDate); repay.setHours(0,0,0,0);
+  const diff = Math.round((repay - today) / (1000 * 60 * 60 * 24));
+  document.getElementById('pd-days').value = diff > 0 ? diff + ' Days' : '0 Days';
+}
+
+function calcAdminFee() {
+  const val = document.getElementById('pd-sanction').value;
+  // Extract first number from range like "₹13,416 - ₹14,216"
+  const match = val.match(/[\d,]+/);
+  if (!match) return;
+  const amt = parseInt(match[0].replace(/,/g, ''));
+  if (!isNaN(amt) && amt > 0) {
+    const fee = Math.round(amt * 0.10);
+    const el = document.getElementById('pd-adminfee');
+    el.value = fee.toLocaleString('en-IN');
+  }
+}
+
+// ══════════════════════════════════════════
+// PD VERIFICATION FORM
+// ══════════════════════════════════════════
+
+function formatDateDMY(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+}
+
+function generatePDForm() {
+  const cr = window._lastCreditResult;
+  const ci = window._lastCreditInput;
+  if (!cr || !ci) { alert('Please run credit analysis first.'); return; }
+
+  const name = document.getElementById('pd-name').value.trim() || '-';
+  const location = document.getElementById('pd-location').value.trim() || '-';
+  const caseType = document.getElementById('pd-casetype').value;
+  const contact = document.getElementById('pd-contact').value.trim() || '-';
+  const address1 = document.getElementById('pd-address1').value.trim() || '-';
+  const address2 = document.getElementById('pd-address2').value.trim() || '';
+  const bankName = document.getElementById('pd-bankname').value.trim() || '-';
+  const roi = document.getElementById('pd-roi').value || '1';
+  const adminFee = document.getElementById('pd-adminfee').value.trim() || '-';
+  const days = document.getElementById('pd-days').value || '-';
+  const repayDate = formatDateDMY(document.getElementById('pd-repaydate').value);
+  const pdLocation = document.getElementById('pd-pdlocation').value.trim() || '-';
+  const verification = document.getElementById('pd-verification').value;
+  const residence = ci.residence === 'company provided' ? 'Company Provided' : ci.residence === 'own house' ? 'Own House' : 'Rented';
+
+  // Save PD details to DB (fire-and-forget)
+  if (window._currentAnalysisId) {
+    fetch('/api/update-pd-details', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        analysis_id: window._currentAnalysisId,
+        customer_name: name, location: location, case_type: caseType,
+        contact_number: contact, home_address: address1, office_address: address2,
+        salary_bank: bankName, sanction_amount: document.getElementById('pd-sanction').value.replace(/,/g, ''),
+        roi: roi, admin_fee: adminFee.replace(/,/g, ''),
+        repayment_date: document.getElementById('pd-repaydate').value || null,
+        num_days: days, pd_location_time: pdLocation,
+        verification_type: verification, remarks: document.getElementById('pd-remarks').value.trim()
+      })
+    }).catch(err => console.warn('PD save failed:', err));
+  }
+
+  // Format salary in Indian comma style
+  const salary = ci.income ? ci.income.toLocaleString('en-IN') : '-';
+  // Use editable sanction amount (credit manager can override)
+  const sanctionText = document.getElementById('pd-sanction').value.trim() || cr.sanction_amount_range || '-';
+
+  const rows = [
+    ['Customer Name', name.toUpperCase()],
+    ['Case Type', caseType],
+    ['CIBIL Score', ci.cibil],
+    ['Monthly Salary', salary + '/-'],
+    ['ROI', roi + '% per day'],
+    ['Sanction Amount', sanctionText],
+    ['Admin Fee', adminFee],
+    ['Contact Number', contact],
+    ['Home Address', address1 !== '-' ? '<a href="https://www.google.com/maps/search/' + encodeURIComponent(address1) + '" target="_blank" style="color:#2563eb;text-decoration:underline;">' + address1 + '</a>' : '-'],
+    ['Office Address', address2 ? '<a href="https://www.google.com/maps/search/' + encodeURIComponent(address2) + '" target="_blank" style="color:#2563eb;text-decoration:underline;">' + address2 + '</a>' : '-'],
+    ['Salary Bank Account Name', bankName],
+  ];
+
+  const highlightRows = [
+    ['Verification should be done', verification],
+    ['Required', 'Take Three References'],
+  ];
+
+  const bottomRows = [
+    ['Repayment Date', repayDate],
+    ['Number of Days', days],
+    ['Residence Type', residence],
+    ['PD Location / Time', pdLocation],
+  ];
+
+  let html = '<div id="pd-form-print">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;font-family:\'DM Sans\',sans-serif;">';
+  // Header
+  html += '<tr><td colspan="2" style="text-align:center;padding:10px 14px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;border:1px solid #1e40af;">Location: &nbsp;' + location + '</td></tr>';
+  // Regular rows
+  rows.forEach(function(r) {
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#334155;background:#f8fafc;width:40%;">' + r[0] + '</td>';
+    html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#1e293b;font-weight:700;">' + r[1] + '</td></tr>';
+  });
+  // Highlighted rows (yellow)
+  highlightRows.forEach(function(r) {
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#92400e;background:#fef3c7;">' + r[0] + '</td>';
+    html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#92400e;font-weight:700;background:#fef3c7;">' + r[1] + '</td></tr>';
+  });
+  // Bottom rows
+  bottomRows.forEach(function(r) {
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#334155;background:#f8fafc;width:40%;">' + r[0] + '</td>';
+    html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#1e293b;font-weight:700;">' + r[1] + '</td></tr>';
+  });
+  // Document collected / to be collected
+  var ds = window._lastDocState;
+  if (ds && ds.items) {
+    var collected = ds.items.filter(function(i) { return ds.state[i]; });
+    var pending = ds.items.filter(function(i) { return !ds.state[i]; });
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#065f46;background:#ecfdf5;width:40%;">Documents Collected</td>';
+    html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#065f46;background:#ecfdf5;font-weight:600;">' + (collected.length ? collected.join(', ') : 'None') + '</td></tr>';
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#991b1b;background:#fef2f2;width:40%;">Document Pending</td>';
+    html += '<td contenteditable="true" style="padding:8px 14px;border:1px solid #cbd5e1;color:#991b1b;background:#fef2f2;font-weight:600;outline:none;cursor:text;">' + (pending.length ? pending.join(', ') : 'All Collected') + '</td></tr>';
+  }
+  var remarks = document.getElementById('pd-remarks').value.trim() || '-';
+  html += '<tr><td style="padding:10px 14px;border:2px solid #1e40af;font-weight:700;color:#1e3a5f;background:#dbeafe;width:40%;vertical-align:top;font-size:14px;">Remarks</td>';
+  html += '<td contenteditable="true" style="padding:10px 14px;border:2px solid #1e40af;color:#1e3a5f;background:#eff6ff;font-weight:700;font-size:14px;min-height:60px;outline:none;cursor:text;">' + remarks.replace(/\n/g, '<br>') + '</td></tr>';
+  html += '</table></div>';
+
+  document.getElementById('pd-form-content').innerHTML = html;
+  document.getElementById('pd-form-card').style.display = '';
+  document.getElementById('pd-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function getPDFormData() {
+  const cr = window._lastCreditResult;
+  const ci = window._lastCreditInput;
+  if (!cr || !ci) return null;
+
+  const name = document.getElementById('pd-name').value.trim() || '-';
+  const location = document.getElementById('pd-location').value.trim() || '-';
+  const caseType = document.getElementById('pd-casetype').value;
+  const contact = document.getElementById('pd-contact').value.trim() || '-';
+  const address1 = document.getElementById('pd-address1').value.trim() || '-';
+  const address2 = document.getElementById('pd-address2').value.trim() || '';
+  const bankName = document.getElementById('pd-bankname').value.trim() || '-';
+  const roi = document.getElementById('pd-roi').value || '1';
+  const adminFee = document.getElementById('pd-adminfee').value.trim() || '-';
+  const days = document.getElementById('pd-days').value || '-';
+  const repayDate = formatDateDMY(document.getElementById('pd-repaydate').value);
+  const pdLocation = document.getElementById('pd-pdlocation').value.trim() || '-';
+  const verification = document.getElementById('pd-verification').value;
+  const residence = ci.residence === 'company provided' ? 'Company Provided' : ci.residence === 'own house' ? 'Own House' : 'Rented';
+  const salary = ci.income ? ci.income.toLocaleString('en-IN') : '-';
+  const sanctionText = document.getElementById('pd-sanction').value.trim() || cr.sanction_amount_range || '-';
+  const remarks = document.getElementById('pd-remarks').value.trim() || '-';
+
+  var ds = window._lastDocState;
+  var collected = [], pending = [];
+  if (ds && ds.items) {
+    collected = ds.items.filter(function(i) { return ds.state[i]; });
+    pending = ds.items.filter(function(i) { return !ds.state[i]; });
+  }
+
+  return {
+    name: name, location: location, caseType: caseType, contact: contact,
+    address1: address1, address2: address2, bankName: bankName, roi: roi,
+    adminFee: adminFee, days: days, repayDate: repayDate, pdLocation: pdLocation,
+    verification: verification, residence: residence, salary: salary,
+    sanctionText: sanctionText, remarks: remarks, cibil: ci.cibil,
+    collected: collected, pending: pending
+  };
+}
+
+// Replace ₹ with Rs. for PDF (jsPDF can't render ₹ in default font)
+function pdfSafe(str) { return String(str).replace(/₹/g, 'Rs.'); }
+
+function savePDFormPDF() {
+  var d = getPDFormData();
+  if (!d) { alert('Please run credit analysis first.'); return; }
+
+  var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+  var pageW = pdf.internal.pageSize.getWidth();
+
+  // Logo
+  try {
+    var logo = new Image();
+    logo.src = '/static/Everyday Loan.png';
+    pdf.addImage(logo, 'PNG', 14, 8, 36, 12);
+  } catch(e) {}
+
+  // Header text
+  pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 58, 95);
+  pdf.text('PD Verification Form', pageW - 14, 14, { align: 'right' });
+  pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(71, 85, 105);
+  pdf.text('Generated: ' + new Date().toLocaleDateString('en-IN') + (currentUser ? '  |  By: ' + currentUser.username : ''), pageW - 14, 19, { align: 'right' });
+
+  // Blue location banner
+  pdf.setFillColor(37, 99, 235);
+  pdf.rect(14, 24, pageW - 28, 8, 'F');
+  pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+  pdf.text('Location:  ' + d.location, pageW / 2, 29.5, { align: 'center' });
+
+  // Table rows
+  var tableRows = [
+    ['Customer Name', d.name.toUpperCase()],
+    ['Case Type', d.caseType],
+    ['CIBIL Score', String(d.cibil)],
+    ['Monthly Salary', pdfSafe(d.salary + '/-')],
+    ['ROI', d.roi + '% per day'],
+    ['Sanction Amount', pdfSafe(d.sanctionText)],
+    ['Admin Fee', pdfSafe(d.adminFee)],
+    ['Contact Number', d.contact],
+    ['Home Address', d.address1],
+    ['Office Address', d.address2 || '-'],
+    ['Salary Bank Account Name', d.bankName],
+  ];
+
+  var highlightRows = [
+    ['Verification should be done', d.verification],
+    ['Required', 'Take Three References'],
+  ];
+
+  var bottomRows = [
+    ['Repayment Date', d.repayDate],
+    ['Number of Days', d.days],
+    ['Residence Type', d.residence],
+    ['PD Location / Time', d.pdLocation],
+    ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
+    ['Document Pending', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Remarks', d.remarks],
+  ];
+
+  var allRows = tableRows.concat(highlightRows).concat(bottomRows);
+  var addressRowIdx1 = 8;
+  var addressRowIdx2 = 9;
+  var highlightStart = tableRows.length;
+  var highlightEnd = tableRows.length + highlightRows.length;
+  var docCollectedIdx = tableRows.length + highlightRows.length + 4;
+  var docPendingIdx = tableRows.length + highlightRows.length + 5;
+  var remarksIdx = allRows.length - 1;
+
+  pdf.autoTable({
+    startY: 34,
+    margin: { left: 14, right: 14 },
+    head: [],
+    body: allRows,
+    theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 41, 59], lineColor: [203, 213, 225], lineWidth: 0.2 },
+    columnStyles: {
+      0: { cellWidth: 52, fontStyle: 'bold', fillColor: [248, 250, 252], textColor: [51, 65, 85] },
+      1: { fontStyle: 'bold' }
+    },
+    didParseCell: function(data) {
+      var i = data.row.index;
+      if (i >= highlightStart && i < highlightEnd) {
+        data.cell.styles.fillColor = [254, 243, 199];
+        data.cell.styles.textColor = [146, 64, 14];
+      }
+      if (i === docCollectedIdx) {
+        data.cell.styles.fillColor = [236, 253, 245];
+        data.cell.styles.textColor = [6, 95, 70];
+      }
+      if (i === docPendingIdx) {
+        data.cell.styles.fillColor = [254, 242, 242];
+        data.cell.styles.textColor = [153, 27, 27];
+      }
+      if (i === remarksIdx) {
+        data.cell.styles.fillColor = data.column.index === 0 ? [219, 234, 254] : [239, 246, 255];
+        data.cell.styles.textColor = [30, 58, 95];
+        data.cell.styles.fontSize = 9;
+      }
+      if ((i === addressRowIdx1 || i === addressRowIdx2) && data.column.index === 1) {
+        data.cell.styles.textColor = [37, 99, 235];
+      }
+    },
+    didDrawCell: function(data) {
+      if (data.column.index === 1 && data.row.index === addressRowIdx1 && d.address1 !== '-') {
+        pdf.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: 'https://www.google.com/maps/search/' + encodeURIComponent(d.address1) });
+      }
+      if (data.column.index === 1 && data.row.index === addressRowIdx2 && d.address2) {
+        pdf.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: 'https://www.google.com/maps/search/' + encodeURIComponent(d.address2) });
+      }
+    }
+  });
+
+  pdf.save((d.name || 'PD_Form').replace(/\s+/g, '_') + '_PD_Form.pdf');
+}
+
+function savePDFormExcel() {
+  var d = getPDFormData();
+  if (!d) { alert('Please run credit analysis first.'); return; }
+
+  var rows = [
+    ['Location', d.location],
+    ['Customer Name', d.name.toUpperCase()],
+    ['Case Type', d.caseType],
+    ['CIBIL Score', d.cibil],
+    ['Monthly Salary', d.salary + '/-'],
+    ['ROI', d.roi + '% per day'],
+    ['Sanction Amount', d.sanctionText],
+    ['Admin Fee', d.adminFee],
+    ['Contact Number', d.contact],
+    ['Home Address', d.address1],
+    ['Office Address', d.address2 || '-'],
+    ['Salary Bank Account Name', d.bankName],
+    ['Verification should be done', d.verification],
+    ['Required', 'Take Three References'],
+    ['Repayment Date', d.repayDate],
+    ['Number of Days', d.days],
+    ['Residence Type', d.residence],
+    ['PD Location / Time', d.pdLocation],
+    ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
+    ['Document Pending', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Remarks', d.remarks],
+  ];
+
+  var generatedBy = currentUser ? currentUser.username : '-';
+  var generatedDate = new Date().toLocaleDateString('en-IN');
+
+  // Section grouping for clean layout
+  var sections = [
+    { title: 'Applicant Information', rows: [0, 1, 2, 3, 4] },
+    { title: 'Loan Details', rows: [5, 6, 7] },
+    { title: 'Contact & Address', rows: [8, 9, 10, 11] },
+    { title: 'Verification', rows: [12, 13, 14, 15, 16, 17] },
+    { title: 'Documents', rows: [18, 19] },
+    { title: 'Remarks', rows: [20] },
+  ];
+
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:spreadsheet" xmlns="http://www.w3.org/TR/REC-html40">';
+  html += '<head><meta charset="utf-8"/>';
+  html += '<style>';
+  html += 'table { border-collapse: collapse; width: 700px; }';
+  html += 'td { padding: 8px 14px; font-family: Calibri, Arial, sans-serif; font-size: 12px; vertical-align: top; }';
+  html += '.label { font-weight: 600; color: #374151; background: #f8fafc; width: 220px; border: 1px solid #d1d5db; }';
+  html += '.val { border: 1px solid #d1d5db; color: #1f2937; }';
+  html += '.section { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding: 7px 14px; border: none; }';
+  html += '.header { background: #2563eb; color: #fff; font-weight: 700; text-align: center; font-size: 14px; padding: 10px; border: none; }';
+  html += '.highlight-label { font-weight: 700; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; }';
+  html += '.highlight-val { color: #92400e; font-weight: 600; background: #fffbeb; border: 1px solid #fde68a; }';
+  html += '.green-label { font-weight: 600; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; }';
+  html += '.green-val { color: #065f46; background: #f0fdf4; border: 1px solid #a7f3d0; }';
+  html += '.red-label { font-weight: 600; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }';
+  html += '.red-val { color: #991b1b; background: #fff5f5; border: 1px solid #fecaca; }';
+  html += '.remarks-val { color: #1e40af; font-weight: 600; background: #eff6ff; border: 1px solid #bfdbfe; }';
+  html += '</style></head>';
+  html += '<body><table>';
+
+  // Header row - company name + meta
+  html += '<tr><td style="border:none;font-size:18px;font-weight:700;color:#1e3a5f;font-family:Calibri,Arial;padding:12px 14px;">Everyday Loan</td>';
+  html += '<td style="border:none;text-align:right;font-size:11px;color:#6b7280;font-family:Calibri,Arial;padding:12px 14px;">PD Verification Form<br/>Generated: ' + generatedDate + ' | By: ' + generatedBy + '</td></tr>';
+
+  // Spacer
+  html += '<tr><td colspan="2" style="border:none;height:6px;"></td></tr>';
+
+  // Location banner
+  html += '<tr><td colspan="2" class="header">Location: ' + d.location + '</td></tr>';
+
+  // Sections
+  sections.forEach(function(sec) {
+    // Section header
+    html += '<tr><td colspan="2" class="section">' + sec.title + '</td></tr>';
+
+    sec.rows.forEach(function(i) {
+      var r = rows[i];
+      var labelCls = 'label', valCls = 'val';
+
+      // Verification & Required rows
+      if (i === 12 || i === 13) { labelCls = 'highlight-label'; valCls = 'highlight-val'; }
+      // Documents collected
+      else if (i === 18) { labelCls = 'green-label'; valCls = 'green-val'; }
+      // Documents pending
+      else if (i === 19) { labelCls = 'red-label'; valCls = 'red-val'; }
+      // Remarks
+      else if (i === 20) { labelCls = 'label'; valCls = 'remarks-val'; }
+
+      var val = r[1];
+      // Google Maps links for addresses
+      if ((i === 9 && d.address1 && d.address1 !== '-') || (i === 10 && d.address2)) {
+        val = '<a href="https://www.google.com/maps/search/' + encodeURIComponent(r[1]) + '" style="color:#2563eb;">' + r[1] + '</a>';
+      }
+      // Right-align numeric values
+      var numAlign = '';
+      if (i === 3 || i === 7) numAlign = ' style="text-align:right;"';
+
+      html += '<tr><td class="' + labelCls + '">' + r[0] + '</td><td class="' + valCls + '"' + numAlign + '>' + val + '</td></tr>';
+    });
+  });
+
+  html += '</table></body></html>';
+
+  var blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (d.name || 'PD_Form').replace(/\s+/g, '_') + '_PD_Form.xls';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ══════════════════════════════════════════
@@ -2697,6 +3184,7 @@ function toggleDocPanel() {
 
 <script>renderDocChecklist();</script>
 
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 

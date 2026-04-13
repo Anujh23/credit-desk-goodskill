@@ -80,6 +80,7 @@ def init_db():
     _get_pool()
     init_auth_tables()
     create_bank_statements_table()
+    create_credit_analyses_table()
     logger.info("Database initialized successfully")
 
 
@@ -1409,6 +1410,104 @@ def create_bank_statements_table():
                 logger.info("bank_statements table created")
             else:
                 logger.info("bank_statements table verified (already exists)")
+
+
+def create_credit_analyses_table():
+    """Create credit_analyses table for logging every credit analysis + PD details."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS credit_analyses (
+                    id SERIAL PRIMARY KEY,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(50),
+                    -- Credit Analyser inputs
+                    monthly_salary NUMERIC(12,2),
+                    cibil_score INTEGER,
+                    cibil_overdue INTEGER,
+                    active_emi INTEGER,
+                    payday_loans INTEGER,
+                    residence_type VARCHAR(50),
+                    enach_bounces INTEGER,
+                    -- Analysis result
+                    status VARCHAR(50),
+                    worthiness_score NUMERIC(4,1),
+                    obligation_pct NUMERIC(5,1),
+                    sanction_pct_min NUMERIC(5,2),
+                    sanction_pct_max NUMERIC(5,2),
+                    sanction_min NUMERIC(12,2),
+                    sanction_max NUMERIC(12,2),
+                    -- PD Details (nullable, filled later)
+                    customer_name VARCHAR(200),
+                    location VARCHAR(200),
+                    case_type VARCHAR(20),
+                    contact_number VARCHAR(20),
+                    home_address TEXT,
+                    office_address TEXT,
+                    salary_bank VARCHAR(100),
+                    sanction_amount NUMERIC(12,2),
+                    roi NUMERIC(5,2),
+                    admin_fee NUMERIC(12,2),
+                    repayment_date DATE,
+                    num_days INTEGER,
+                    pd_location_time VARCHAR(200),
+                    verification_type VARCHAR(50),
+                    remarks TEXT
+                )
+            """)
+            conn.commit()
+            logger.info("credit_analyses table created/verified")
+
+
+def insert_credit_analysis(data: Dict[str, Any]) -> int:
+    """Insert a credit analysis row. Returns the row id."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO credit_analyses (
+                    created_by, monthly_salary, cibil_score, cibil_overdue,
+                    active_emi, payday_loans, residence_type, enach_bounces,
+                    status, worthiness_score, obligation_pct,
+                    sanction_pct_min, sanction_pct_max, sanction_min, sanction_max
+                ) VALUES (
+                    %(created_by)s, %(monthly_salary)s, %(cibil_score)s, %(cibil_overdue)s,
+                    %(active_emi)s, %(payday_loans)s, %(residence_type)s, %(enach_bounces)s,
+                    %(status)s, %(worthiness_score)s, %(obligation_pct)s,
+                    %(sanction_pct_min)s, %(sanction_pct_max)s, %(sanction_min)s, %(sanction_max)s
+                ) RETURNING id
+            """, data)
+            row_id = cur.fetchone()['id']
+            conn.commit()
+            logger.info(f"Credit analysis logged: id={row_id}, user={data.get('created_by')}")
+            return row_id
+
+
+def update_credit_analysis_pd(analysis_id: int, pd_data: Dict[str, Any]) -> bool:
+    """Update PD details on an existing credit analysis row."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE credit_analyses SET
+                    customer_name = %(customer_name)s,
+                    location = %(location)s,
+                    case_type = %(case_type)s,
+                    contact_number = %(contact_number)s,
+                    home_address = %(home_address)s,
+                    office_address = %(office_address)s,
+                    salary_bank = %(salary_bank)s,
+                    sanction_amount = %(sanction_amount)s,
+                    roi = %(roi)s,
+                    admin_fee = %(admin_fee)s,
+                    repayment_date = %(repayment_date)s,
+                    num_days = %(num_days)s,
+                    pd_location_time = %(pd_location_time)s,
+                    verification_type = %(verification_type)s,
+                    remarks = %(remarks)s
+                WHERE id = %(id)s
+            """, {**pd_data, 'id': analysis_id})
+            conn.commit()
+            logger.info(f"PD details updated for analysis id={analysis_id}")
+            return cur.rowcount > 0
 
 
 def save_bank_statement(account_data: Dict[str, Any], created_by: str = None) -> Dict[str, Any]:
