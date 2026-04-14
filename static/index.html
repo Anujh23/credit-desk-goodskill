@@ -2661,7 +2661,7 @@ function generatePDForm() {
     var pending = ds.items.filter(function(i) { return !ds.state[i]; });
     html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#065f46;background:#ecfdf5;width:40%;">Documents Collected</td>';
     html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#065f46;background:#ecfdf5;font-weight:600;">' + (collected.length ? collected.join(', ') : 'None') + '</td></tr>';
-    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#991b1b;background:#fef2f2;width:40%;">Documents In Processing</td>';
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#991b1b;background:#fef2f2;width:40%;">Documents In Process</td>';
     html += '<td contenteditable="true" style="padding:8px 14px;border:1px solid #cbd5e1;color:#991b1b;background:#fef2f2;font-weight:600;outline:none;cursor:text;">' + (pending.length ? pending.join(', ') : 'All Collected') + '</td></tr>';
   }
   var remarks = document.getElementById('pd-remarks').value.trim() || '-';
@@ -2767,7 +2767,7 @@ function savePDFormPDF() {
     ['Number of Days', String(d.days).replace(/ Days/i, '')],
     ['Residence Type', d.residence],
     ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
-    ['Documents In Processing', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Documents In Process', d.pending.length ? d.pending.join(', ') : 'All Collected'],
     ['Remarks', d.remarks],
   ];
 
@@ -2849,7 +2849,7 @@ function savePDFormExcel() {
     ['Number of Days', String(d.days).replace(/ Days/i, '')],
     ['Residence Type', d.residence],
     ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
-    ['Documents In Processing', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Documents In Process', d.pending.length ? d.pending.join(', ') : 'All Collected'],
     ['Remarks', d.remarks],
   ];
 
