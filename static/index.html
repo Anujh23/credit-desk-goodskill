@@ -1111,13 +1111,12 @@
             <div class="field" style="margin-bottom:0;"><label>Contact Number</label><input type="text" id="pd-contact" placeholder="e.g. 9845822453" /></div>
             <div class="field" style="margin-bottom:0; grid-column: span 2;"><label>Home Address</label><input type="text" id="pd-address1" placeholder="e.g. #42, 2nd Cross, JP Nagar, Bangalore 560078" /></div>
             <div class="field" style="margin-bottom:0; grid-column: span 2;"><label>Office Address</label><input type="text" id="pd-address2" placeholder="e.g. #10, 5th Main, Koramangala, Bangalore 560034" /></div>
-            <div class="field" style="margin-bottom:0;"><label>Salary Bank Account Name</label><input type="text" id="pd-bankname" placeholder="e.g. Axis Bank" /></div>
+            <div class="field" style="margin-bottom:0;"><label>Bank Account</label><input type="text" id="pd-bankname" placeholder="e.g. Axis Bank" /></div>
             <div class="field" style="margin-bottom:0;"><label>Sanction Amount (&#8377;)</label><input type="text" id="pd-sanction" placeholder="Auto-filled after analysis" oninput="formatIndianComma(this); calcAdminFee();" /></div>
             <div class="field" style="margin-bottom:0;"><label>ROI (% per day)</label><input type="number" id="pd-roi" value="1" step="0.1" min="0" max="5" /></div>
             <div class="field" style="margin-bottom:0;"><label>Admin Fee (&#8377;)</label><input type="text" id="pd-adminfee" placeholder="e.g. 4,500" oninput="formatIndianComma(this)" /></div>
             <div class="field" style="margin-bottom:0;"><label>Repayment Date</label><input type="date" id="pd-repaydate" onchange="calcRepayDays()" /></div>
             <div class="field" style="margin-bottom:0;"><label>Number of Days</label><input type="text" id="pd-days" placeholder="Auto-calculated" readonly style="background:#f1f5f9;color:#475569;" /></div>
-            <div class="field" style="margin-bottom:0;"><label>PD Location / Time</label><input type="text" id="pd-pdlocation" placeholder="e.g. 11/3/2026, 2:00 PM" /></div>
             <div class="field" style="margin-bottom:0;"><label>Verification Type</label>
               <select id="pd-verification">
                 <option value="Home Verification">Home Verification</option>
@@ -2585,7 +2584,7 @@ function generatePDForm() {
   const adminFee = document.getElementById('pd-adminfee').value.trim() || '-';
   const days = document.getElementById('pd-days').value || '-';
   const repayDate = formatDateDMY(document.getElementById('pd-repaydate').value);
-  const pdLocation = document.getElementById('pd-pdlocation').value.trim() || '-';
+  const pdLocation = new Date().toLocaleString('en-IN', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
   const verification = document.getElementById('pd-verification').value;
   const residence = ci.residence === 'company provided' ? 'Company Provided' : ci.residence === 'own house' ? 'Own House' : 'Rented';
 
@@ -2616,26 +2615,24 @@ function generatePDForm() {
     ['Customer Name', name.toUpperCase()],
     ['Case Type', caseType],
     ['CIBIL Score', ci.cibil],
-    ['Monthly Salary', salary + '/-'],
-    ['ROI', roi + '% per day'],
+    ['Monthly Salary', '₹' + salary],
+    ['ROI', roi + '% / day'],
     ['Sanction Amount', sanctionText],
-    ['Admin Fee', adminFee],
+    ['Admin Fee', '₹' + adminFee],
     ['Contact Number', contact],
     ['Home Address', address1 !== '-' ? '<a href="https://www.google.com/maps/search/' + encodeURIComponent(address1) + '" target="_blank" style="color:#2563eb;text-decoration:underline;">' + address1 + '</a>' : '-'],
     ['Office Address', address2 ? '<a href="https://www.google.com/maps/search/' + encodeURIComponent(address2) + '" target="_blank" style="color:#2563eb;text-decoration:underline;">' + address2 + '</a>' : '-'],
-    ['Salary Bank Account Name', bankName],
+    ['Bank Account', bankName],
   ];
 
   const highlightRows = [
-    ['Verification should be done', verification],
-    ['Required', 'Take Three References'],
+    ['Verification Type', verification],
   ];
 
   const bottomRows = [
     ['Repayment Date', repayDate],
-    ['Number of Days', days],
+    ['Number of Days', days.replace(/ Days/i, '')],
     ['Residence Type', residence],
-    ['PD Location / Time', pdLocation],
   ];
 
   let html = '<div id="pd-form-print">';
@@ -2664,7 +2661,7 @@ function generatePDForm() {
     var pending = ds.items.filter(function(i) { return !ds.state[i]; });
     html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#065f46;background:#ecfdf5;width:40%;">Documents Collected</td>';
     html += '<td style="padding:8px 14px;border:1px solid #cbd5e1;color:#065f46;background:#ecfdf5;font-weight:600;">' + (collected.length ? collected.join(', ') : 'None') + '</td></tr>';
-    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#991b1b;background:#fef2f2;width:40%;">Document Pending</td>';
+    html += '<tr><td style="padding:8px 14px;border:1px solid #cbd5e1;font-weight:600;color:#991b1b;background:#fef2f2;width:40%;">Documents In Processing</td>';
     html += '<td contenteditable="true" style="padding:8px 14px;border:1px solid #cbd5e1;color:#991b1b;background:#fef2f2;font-weight:600;outline:none;cursor:text;">' + (pending.length ? pending.join(', ') : 'All Collected') + '</td></tr>';
   }
   var remarks = document.getElementById('pd-remarks').value.trim() || '-';
@@ -2693,7 +2690,7 @@ function getPDFormData() {
   const adminFee = document.getElementById('pd-adminfee').value.trim() || '-';
   const days = document.getElementById('pd-days').value || '-';
   const repayDate = formatDateDMY(document.getElementById('pd-repaydate').value);
-  const pdLocation = document.getElementById('pd-pdlocation').value.trim() || '-';
+  const pdLocation = new Date().toLocaleString('en-IN', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
   const verification = document.getElementById('pd-verification').value;
   const residence = ci.residence === 'company provided' ? 'Company Provided' : ci.residence === 'own house' ? 'Own House' : 'Rented';
   const salary = ci.income ? ci.income.toLocaleString('en-IN') : '-';
@@ -2738,7 +2735,7 @@ function savePDFormPDF() {
   pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 58, 95);
   pdf.text('PD Verification Form', pageW - 14, 14, { align: 'right' });
   pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(71, 85, 105);
-  pdf.text('Generated: ' + new Date().toLocaleDateString('en-IN') + (currentUser ? '  |  By: ' + currentUser.username : ''), pageW - 14, 19, { align: 'right' });
+  pdf.text('Generated: ' + new Date().toLocaleString('en-IN', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true }) + (currentUser ? '  |  By: ' + currentUser.username : ''), pageW - 14, 19, { align: 'right' });
 
   // Blue location banner
   pdf.setFillColor(37, 99, 235);
@@ -2751,28 +2748,26 @@ function savePDFormPDF() {
     ['Customer Name', d.name.toUpperCase()],
     ['Case Type', d.caseType],
     ['CIBIL Score', String(d.cibil)],
-    ['Monthly Salary', pdfSafe(d.salary + '/-')],
-    ['ROI', d.roi + '% per day'],
+    ['Monthly Salary', pdfSafe('Rs.' + d.salary)],
+    ['ROI', d.roi + '% / day'],
     ['Sanction Amount', pdfSafe(d.sanctionText)],
-    ['Admin Fee', pdfSafe(d.adminFee)],
+    ['Admin Fee', pdfSafe('₹' + d.adminFee)],
     ['Contact Number', d.contact],
     ['Home Address', d.address1],
     ['Office Address', d.address2 || '-'],
-    ['Salary Bank Account Name', d.bankName],
+    ['Bank Account', d.bankName],
   ];
 
   var highlightRows = [
-    ['Verification should be done', d.verification],
-    ['Required', 'Take Three References'],
+    ['Verification Type', d.verification],
   ];
 
   var bottomRows = [
     ['Repayment Date', d.repayDate],
-    ['Number of Days', d.days],
+    ['Number of Days', String(d.days).replace(/ Days/i, '')],
     ['Residence Type', d.residence],
-    ['PD Location / Time', d.pdLocation],
     ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
-    ['Document Pending', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Documents In Processing', d.pending.length ? d.pending.join(', ') : 'All Collected'],
     ['Remarks', d.remarks],
   ];
 
@@ -2781,8 +2776,8 @@ function savePDFormPDF() {
   var addressRowIdx2 = 9;
   var highlightStart = tableRows.length;
   var highlightEnd = tableRows.length + highlightRows.length;
-  var docCollectedIdx = tableRows.length + highlightRows.length + 4;
-  var docPendingIdx = tableRows.length + highlightRows.length + 5;
+  var docCollectedIdx = tableRows.length + highlightRows.length + 3;
+  var docPendingIdx = tableRows.length + highlightRows.length + 4;
   var remarksIdx = allRows.length - 1;
 
   pdf.autoTable({
@@ -2841,36 +2836,35 @@ function savePDFormExcel() {
     ['Customer Name', d.name.toUpperCase()],
     ['Case Type', d.caseType],
     ['CIBIL Score', d.cibil],
-    ['Monthly Salary', d.salary + '/-'],
-    ['ROI', d.roi + '% per day'],
+    ['Monthly Salary', '₹' + d.salary],
+    ['ROI', d.roi + '% / day'],
     ['Sanction Amount', d.sanctionText],
-    ['Admin Fee', d.adminFee],
+    ['Admin Fee', '₹' + d.adminFee],
     ['Contact Number', d.contact],
     ['Home Address', d.address1],
     ['Office Address', d.address2 || '-'],
-    ['Salary Bank Account Name', d.bankName],
-    ['Verification should be done', d.verification],
-    ['Required', 'Take Three References'],
+    ['Bank Account', d.bankName],
+    ['Verification Type', d.verification],
     ['Repayment Date', d.repayDate],
-    ['Number of Days', d.days],
+    ['Number of Days', String(d.days).replace(/ Days/i, '')],
     ['Residence Type', d.residence],
-    ['PD Location / Time', d.pdLocation],
     ['Documents Collected', d.collected.length ? d.collected.join(', ') : 'None'],
-    ['Document Pending', d.pending.length ? d.pending.join(', ') : 'All Collected'],
+    ['Documents In Processing', d.pending.length ? d.pending.join(', ') : 'All Collected'],
     ['Remarks', d.remarks],
   ];
 
   var generatedBy = currentUser ? currentUser.username : '-';
   var generatedDate = new Date().toLocaleDateString('en-IN');
+  var generatedDateTime = new Date().toLocaleString('en-IN', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
 
   // Section grouping for clean layout
   var sections = [
     { title: 'Applicant Information', rows: [0, 1, 2, 3, 4] },
     { title: 'Loan Details', rows: [5, 6, 7] },
     { title: 'Contact & Address', rows: [8, 9, 10, 11] },
-    { title: 'Verification', rows: [12, 13, 14, 15, 16, 17] },
-    { title: 'Documents', rows: [18, 19] },
-    { title: 'Remarks', rows: [20] },
+    { title: 'Verification', rows: [12, 13, 14, 15] },
+    { title: 'Documents', rows: [16, 17] },
+    { title: 'Remarks', rows: [18] },
   ];
 
   var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:spreadsheet" xmlns="http://www.w3.org/TR/REC-html40">';
@@ -2894,7 +2888,7 @@ function savePDFormExcel() {
 
   // Header row - company name + meta
   html += '<tr><td style="border:none;font-size:18px;font-weight:700;color:#1e3a5f;font-family:Calibri,Arial;padding:12px 14px;">Everyday Loan</td>';
-  html += '<td style="border:none;text-align:right;font-size:11px;color:#6b7280;font-family:Calibri,Arial;padding:12px 14px;">PD Verification Form<br/>Generated: ' + generatedDate + ' | By: ' + generatedBy + '</td></tr>';
+  html += '<td style="border:none;text-align:right;font-size:11px;color:#6b7280;font-family:Calibri,Arial;padding:12px 14px;">PD Verification Form<br/>Generated: ' + generatedDateTime + ' | By: ' + generatedBy + '</td></tr>';
 
   // Spacer
   html += '<tr><td colspan="2" style="border:none;height:6px;"></td></tr>';
@@ -2911,14 +2905,14 @@ function savePDFormExcel() {
       var r = rows[i];
       var labelCls = 'label', valCls = 'val';
 
-      // Verification & Required rows
-      if (i === 12 || i === 13) { labelCls = 'highlight-label'; valCls = 'highlight-val'; }
+      // Verification row
+      if (i === 12) { labelCls = 'highlight-label'; valCls = 'highlight-val'; }
       // Documents collected
-      else if (i === 18) { labelCls = 'green-label'; valCls = 'green-val'; }
+      else if (i === 16) { labelCls = 'green-label'; valCls = 'green-val'; }
       // Documents pending
-      else if (i === 19) { labelCls = 'red-label'; valCls = 'red-val'; }
+      else if (i === 17) { labelCls = 'red-label'; valCls = 'red-val'; }
       // Remarks
-      else if (i === 20) { labelCls = 'label'; valCls = 'remarks-val'; }
+      else if (i === 18) { labelCls = 'label'; valCls = 'remarks-val'; }
 
       var val = r[1];
       // Google Maps links for addresses
