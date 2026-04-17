@@ -75,7 +75,7 @@ def safe_request(method, url, **kwargs):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-JWT_SECRET = os.getenv("JWT_SECRET", "creditdesk-jwt-secret-key-2024")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_EXPIRY_HOURS = 12
 
 
@@ -705,6 +705,40 @@ async def api_delete_statement(request: Request, statement_id: int, admin_key: s
         if not deleted:
             return JSONResponse(content={"error": "Statement not found"}, status_code=404)
         return {"success": True, "message": "Statement deleted"}
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+# ─── PAN Verification Routes ─────────────────────────────────
+
+PAN_API_URL = os.getenv("PAN_API_URL", "")
+PAN_APP_KEY = os.getenv("PAN_APP_KEY", "")
+PAN_APP_SECRET = os.getenv("PAN_APP_SECRET", "")
+
+
+@app.post("/api/verify-pan")
+async def verify_pan(request: Request):
+    """Verify a PAN card using NextBigBox lite API."""
+    data = await request.json()
+    pan_number = (data.get("pan") or "").strip().upper()
+    if not pan_number or len(pan_number) != 10:
+        return JSONResponse(content={"error": "Invalid PAN number. Must be 10 characters."}, status_code=400)
+    if not PAN_API_URL or not PAN_APP_KEY:
+        return JSONResponse(content={"error": "PAN API not configured on server."}, status_code=500)
+    try:
+        resp = requests.post(
+            PAN_API_URL,
+            json={"customer_pan_number": pan_number},
+            headers={
+                "app-key": PAN_APP_KEY,
+                "app-secret": PAN_APP_SECRET,
+                "Content-Type": "application/json",
+            },
+            timeout=15,
+        )
+        return JSONResponse(content=resp.json(), status_code=resp.status_code)
+    except requests.exceptions.ConnectionError:
+        return JSONResponse(content={"error": "Cannot connect to PAN verification service."}, status_code=503)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
