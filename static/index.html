@@ -7,6 +7,7 @@
   <link rel="icon" type="image/jpeg" href="/static/credit-icon.jpg"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -489,6 +490,202 @@
     .doc-check-label { font-size: 13px; color: var(--ink); transition: all 0.2s; }
     .doc-check-item.checked .doc-check-label { color: #999; text-decoration: line-through; }
     @media (max-width: 700px) { .doc-checklist-toggle { display: none; } .doc-checklist-panel { display: none; } }
+
+    /* ── Restricted Professions (policy view) ── */
+    .restricted-card { max-width: 860px; padding: 0; overflow: hidden; }
+
+    .restricted-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      background: #fdfcfa;
+    }
+    .restricted-meta { display: flex; align-items: center; gap: 12px; }
+    .restricted-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 100px;
+      background: #fff3f0; border: 1px solid #f0c9bf;
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      letter-spacing: 0.4px; text-transform: uppercase;
+    }
+    .restricted-count {
+      font-size: 12px; color: var(--ink-light); font-weight: 500;
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+      animation: subtlePulse 1.8s ease-in-out infinite;
+    }
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 1;   box-shadow: 0 0 0 0   rgba(200,75,47,0.5); }
+      70%      { opacity: 0.6; box-shadow: 0 0 0 6px rgba(200,75,47,0);   }
+    }
+
+    .profile-group { padding: 8px 24px 4px; }
+    .profile-group + .profile-group { border-top: 1px solid var(--border); }
+    .profile-group-title {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--ink-light);
+      padding: 12px 0 6px;
+    }
+    .profile-rows {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    }
+    .profile-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 6px;
+      transition: background 0.15s;
+      cursor: default;
+    }
+    .profile-row:hover { background: #f7f4ef; }
+    .profile-icon {
+      color: var(--ink-light); font-size: 14px; width: 18px; text-align: center;
+      flex-shrink: 0;
+    }
+    .profile-name {
+      flex: 1; font-size: 13.5px; font-weight: 500; color: var(--ink);
+    }
+    .profile-qualifier {
+      font-size: 11px; font-weight: 400; color: var(--ink-light);
+      margin-left: 4px;
+    }
+    .profile-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      letter-spacing: 0.3px;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+      animation: subtlePulse 1.8s ease-in-out infinite;
+    }
+
+    .ineligible-note {
+      margin: 8px 24px 24px; padding: 14px 16px; border-radius: 8px;
+      background: #fdfcfa; border-left: 3px solid var(--accent);
+      font-size: 13px; color: var(--ink); line-height: 1.55;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .ineligible-note i { color: var(--accent); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
+    .ineligible-note strong { color: var(--ink); font-weight: 600; }
+
+    @media (max-width: 700px) {
+      .profile-rows { grid-template-columns: 1fr; }
+      .restricted-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pulse-dot, .status-dot { animation: none !important; }
+    }
+
+    /* ── Serviceable Map ── */
+    .map-card { padding: 0; overflow: hidden; }
+    .map-toolbar {
+      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+      border-bottom: 1px solid var(--border); background: #fdfcfa;
+      flex-wrap: wrap;
+    }
+    .map-search-wrap {
+      display: flex; align-items: center; gap: 0;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 0 12px; min-width: 280px; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .map-search-wrap:focus-within {
+      border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,75,47,0.08);
+    }
+    .map-search-wrap > i { color: var(--ink-light); font-size: 13px; }
+    .map-search-wrap input {
+      border: none !important; background: transparent !important;
+      padding: 10px 12px !important; flex: 1; font-size: 14px;
+      outline: none; box-shadow: none !important;
+    }
+    .map-search-btn {
+      background: var(--ink); color: #fff; border: none;
+      width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; font-size: 12px;
+    }
+    .map-search-btn:hover { background: var(--accent); }
+    .map-search-result {
+      font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: 8px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .map-search-result.show { display: inline-flex; }
+    .map-search-result.success { background: #f0f7f4; color: var(--accent2); border: 1px solid #c3e0d4; }
+    .map-search-result.fail    { background: #fff3f0; color: var(--accent); border: 1px solid #f0c9bf; }
+    .map-search-result.pending { background: #fdfcfa; color: var(--ink-light); border: 1px solid var(--border); }
+    .map-search-result .area-tag {
+      display: inline-block; margin-left: 8px; padding: 2px 8px;
+      background: rgba(255,255,255,0.7); border-radius: 6px;
+      font-size: 12px; font-weight: 600; color: var(--ink);
+      border: 1px solid rgba(15,25,35,0.08);
+    }
+
+    #map-canvas {
+      height: 620px; width: 100%; background: #f7f4ef;
+    }
+    /* CartoDB Positron is fairly light — soften it further to match warm paper bg */
+    .leaflet-tile-container { filter: saturate(0.55) brightness(1.02); }
+    .leaflet-container { background: #f7f4ef !important; font-family: 'DM Sans', sans-serif; }
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px; box-shadow: 0 4px 20px rgba(15,25,35,0.12); border: 1px solid var(--border);
+    }
+    .leaflet-popup-content {
+      margin: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink);
+    }
+    .leaflet-popup-content .pop-city { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .leaflet-popup-content .pop-meta { font-size: 12px; color: var(--ink-light); }
+    .leaflet-popup-tip { box-shadow: none; }
+    .leaflet-control-attribution {
+      font-size: 10px !important; background: rgba(255,255,255,0.7) !important;
+      color: #888 !important; padding: 1px 6px !important;
+    }
+    .leaflet-control-zoom a {
+      background: #fff !important; color: var(--ink) !important;
+      border: 1px solid var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--paper) !important; color: var(--accent) !important; }
+
+    .map-legend {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+      padding: 12px 20px; border-top: 1px solid var(--border); background: #fdfcfa;
+      font-size: 12px; color: var(--ink-light);
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-swatch { width: 18px; height: 12px; border-radius: 3px; display: inline-block; }
+    .swatch-region  { background: rgba(200,75,47,0.25); border: 1.5px solid #c84b2f; }
+    .swatch-pincode { background: #c84b2f; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 0 3px rgba(200,75,47,0.18); }
+    .swatch-grey    { background: #d8d3cc; border: 1px solid #c4bfb6; }
+    .legend-stats { margin-left: auto; font-weight: 500; color: var(--ink); }
+
+    /* Pulse animation for search highlight */
+    @keyframes pinPulse {
+      0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(26,107,74,0.55); }
+      70%  { transform: scale(1.4); box-shadow: 0 0 0 18px rgba(26,107,74,0); }
+      100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(26,107,74,0); }
+    }
+    .pin-pulse {
+      animation: pinPulse 1.4s ease-out 2;
+      border-radius: 50%;
+    }
+
+    /* City labels rendered as divIcon markers */
+    .svc-label-icon { background: transparent !important; border: none !important; }
+    .svc-label-text {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #6a2614;
+      text-align: center;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow:
+        0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff,
+        0 0 6px rgba(255,255,255,0.95);
+    }
+
+    /* Smoother stroke on regions */
+    .leaflet-interactive { transition: fill-opacity 0.15s ease; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -643,6 +840,12 @@
       </a>
       <a class="nav-item" data-page="pan-verify" onclick="showPage('pan-verify', this)">
         <i class="fa-solid fa-id-card"></i> PAN Verification
+      </a>
+      <a class="nav-item" data-page="map" onclick="showPage('map', this)">
+        <i class="fa-solid fa-map-location-dot"></i> Serviceable Map
+      </a>
+      <a class="nav-item" data-page="ineligible" onclick="showPage('ineligible', this)">
+        <i class="fa-solid fa-user-xmark"></i> Not Eligible Professions
       </a>
     </div>
     <div class="nav-section">
@@ -1208,6 +1411,131 @@
       </div>
     </div>
 
+    <!-- ═══════════ PAGE: Not Eligible Professions ═══════════ -->
+    <div class="page" id="page-ineligible">
+      <div class="page-header">
+        <h2>Restricted Professions</h2>
+        <p>Internal credit policy — applications matching any profile below must be declined at source</p>
+      </div>
+
+      <div class="card restricted-card">
+        <div class="restricted-header">
+          <div class="card-title" style="margin:0;border:none;padding:0;">
+            <div class="icon"><i class="fa-solid fa-shield-halved"></i></div>
+            Restricted Profile List
+          </div>
+          <div class="restricted-meta">
+            <span class="restricted-pill"><span class="pulse-dot"></span> Active policy</span>
+            <span class="restricted-count">9 profiles</span>
+          </div>
+        </div>
+
+        <div class="profile-group">
+          <div class="profile-group-title">Medical &amp; Legal</div>
+          <div class="profile-rows">
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-user-doctor"></i>
+              <span class="profile-name">Doctor <small class="profile-qualifier">(own clinic)</small></span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-scale-balanced"></i>
+              <span class="profile-name">Lawyer</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-group">
+          <div class="profile-group-title">High-Risk Employment</div>
+          <div class="profile-rows">
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-shield-halved"></i>
+              <span class="profile-name">Defence Personnel</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-plane"></i>
+              <span class="profile-name">Pilot</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-group">
+          <div class="profile-group-title">Variable / Unverified Income</div>
+          <div class="profile-rows">
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-briefcase"></i>
+              <span class="profile-name">Self Employed</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-laptop-code"></i>
+              <span class="profile-name">Freelancer</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-house-chimney"></i>
+              <span class="profile-name">Real Estate Professional</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-group">
+          <div class="profile-group-title">Industry Conflict</div>
+          <div class="profile-rows">
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-building-columns"></i>
+              <span class="profile-name">Credit Manager (NBFC)</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+            <div class="profile-row">
+              <i class="profile-icon fa-solid fa-phone-volume"></i>
+              <span class="profile-name">Recovery &amp; Collection</span>
+              <span class="profile-status"><span class="status-dot"></span>Restricted</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ineligible-note">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>
+            <strong>Decline at source.</strong> Do not proceed with KYC, bureau pull, or sanction calculation if the customer's profession matches any of the above. Escalate to credit policy team for any borderline cases.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Serviceable Map ═══════════ -->
+    <div class="page" id="page-map">
+      <div class="page-header">
+        <h2>Serviceable Map</h2>
+        <p>Locations where loans are currently disbursed — search any pincode to check coverage</p>
+      </div>
+
+      <div class="card map-card">
+        <div class="map-toolbar">
+          <div class="map-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="map-search-input" placeholder="Enter pincode (e.g. 641001)" maxlength="6" inputmode="numeric" autocomplete="off"/>
+            <button class="map-search-btn" onclick="checkPincode()"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+          <div id="map-search-result" class="map-search-result"></div>
+        </div>
+
+        <div id="map-canvas"></div>
+
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-swatch swatch-region"></span>Serviceable city</div>
+          <div class="legend-item"><span class="legend-swatch swatch-pincode"></span>Specific pincode</div>
+          <div class="legend-item"><span class="legend-swatch swatch-grey"></span>Not serviced</div>
+          <div class="legend-stats" id="map-legend-stats"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══════════ PAGE: Settings ═══════════ -->
     <div class="page" id="page-settings">
       <div class="page-header"><h2>Settings</h2><p>Application configuration</p></div>
@@ -1517,6 +1845,7 @@ function showPage(pageId, navEl) {
   if (pageId === 'fidata') updateFiAutoFill();
   if (pageId === 'analysis') initAnalysis();
   if (pageId === 'customer-behavior') initCustomerBehavior();
+  if (pageId === 'map') initServiceableMap();
 }
 
 // ── Sanitization helper (prevent XSS in innerHTML) ──
@@ -3282,6 +3611,270 @@ document.getElementById('pan-input').addEventListener('keydown', function(e) {
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+// ════════════ Serviceable Map ════════════
+let mapState = { map: null, data: null, pincodeIndex: null, regionLayer: null, pinLayer: null, highlightLayer: null, partialCityIndex: null };
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+const REGION_STYLE = {
+  color: '#c84b2f', weight: 2, opacity: 0.95,
+  fillColor: '#c84b2f', fillOpacity: 0.38,
+};
+const PIN_STYLE = {
+  color: '#a13a22', weight: 1, opacity: 1,
+  fillColor: '#c84b2f', fillOpacity: 0.85,
+};
+
+async function initServiceableMap() {
+  if (mapState.map) {
+    setTimeout(() => mapState.map.invalidateSize(), 50);
+    return;
+  }
+
+  const [data, geo] = await Promise.all([
+    fetch('/static/data/serviceable_areas.json').then(r => r.json()),
+    fetch('/static/data/india_metros.geojson').then(r => r.json()),
+  ]);
+  mapState.data = data;
+
+  const idx = {};
+  data.specific_pincodes.forEach(p => { idx[p.pincode] = p; });
+  mapState.pincodeIndex = idx;
+
+  // Metro centroid lookup (for fitBounds + search flyTo)
+  const metroCentroid = {};
+  data.all_pincodes_cities.forEach(c => { metroCentroid[c.city] = c; });
+  mapState.metroCentroid = metroCentroid;
+
+  const map = L.map('map-canvas', {
+    center: [22.5, 80.0],
+    zoom: 5, minZoom: 4, maxZoom: 14,
+    zoomControl: true, attributionControl: true,
+    zoomSnap: 0.5,
+  });
+  mapState.map = map;
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19,
+  }).addTo(map);
+
+  const regionLayer = L.layerGroup().addTo(map);
+  const pinLayer   = L.layerGroup();
+
+  // ── Metros: real district polygons from GeoJSON
+  // Group features by metro so we can attach one popup/tooltip per metro
+  const byMetro = {};
+  geo.features.forEach(f => {
+    const m = f.properties.metro;
+    (byMetro[m] = byMetro[m] || []).push(f);
+  });
+  const metroLabelPos = {}; // for label placement
+  Object.entries(byMetro).forEach(([metro, features]) => {
+    const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
+      style: () => ({ ...REGION_STYLE }),
+      onEachFeature: (feat, lyr) => {
+        lyr.on('mouseover', e => e.target.setStyle({ fillOpacity: 0.55 }));
+        lyr.on('mouseout',  e => e.target.setStyle({ fillOpacity: REGION_STYLE.fillOpacity }));
+      },
+    });
+    layer.bindPopup('<div class="pop-city">' + metro + '</div><div class="pop-meta">All pincodes serviced</div>');
+    // Place permanent label at metro centroid (from data file, not geojson — more reliable)
+    const c = metroCentroid[metro];
+    if (c) {
+      const labelMarker = L.marker([c.lat, c.lng], {
+        icon: L.divIcon({ className: 'svc-label-icon', html: '<div class="svc-label-text">' + metro + '</div>', iconSize: [120, 18], iconAnchor: [60, 9] }),
+        interactive: false,
+      });
+      regionLayer.addLayer(labelMarker);
+    }
+    regionLayer.addLayer(layer);
+  });
+
+  // ── Partial-pincode cities: aggregate blob + per-pincode circles
+  const groups = {};
+  data.specific_pincodes.forEach(p => { (groups[p.city] = groups[p.city] || []).push(p); });
+  const partialCityIdx = {};
+  Object.entries(groups).forEach(([city, pins]) => {
+    const lat = pins.reduce((s,p)=>s+p.lat,0) / pins.length;
+    const lng = pins.reduce((s,p)=>s+p.lng,0) / pins.length;
+    const maxKm = Math.max(...pins.map(p => haversineKm(lat, lng, p.lat, p.lng)));
+    const radius_m = Math.max((maxKm + 2) * 1000, 5000);
+    partialCityIdx[city] = { lat, lng, radius_m };
+
+    const blob = L.circle([lat, lng], { ...REGION_STYLE, radius: radius_m });
+    blob.bindPopup('<div class="pop-city">' + city + '</div><div class="pop-meta">' + pins.length + ' pincodes serviced</div>');
+    blob.on('mouseover', e => e.target.setStyle({ fillOpacity: 0.55 }));
+    blob.on('mouseout',  e => e.target.setStyle({ fillOpacity: REGION_STYLE.fillOpacity }));
+    regionLayer.addLayer(blob);
+
+    // Label on the blob
+    const labelMarker = L.marker([lat, lng], {
+      icon: L.divIcon({ className: 'svc-label-icon', html: '<div class="svc-label-text">' + city + '</div>', iconSize: [120, 18], iconAnchor: [60, 9] }),
+      interactive: false,
+    });
+    regionLayer.addLayer(labelMarker);
+
+    // Individual pincode circles for high-zoom detail
+    pins.forEach(p => {
+      const c = L.circle([p.lat, p.lng], { ...PIN_STYLE, radius: 1500, fillOpacity: 0.65 });
+      c.bindPopup('<div class="pop-city">' + p.city + '</div><div class="pop-meta">Pincode ' + p.pincode + '</div>');
+      c.bindTooltip(p.pincode, { direction: 'top' });
+      pinLayer.addLayer(c);
+    });
+  });
+  mapState.partialCityIndex = partialCityIdx;
+  mapState.regionLayer = regionLayer;
+  mapState.pinLayer = pinLayer;
+
+  const togglePins = () => {
+    if (map.getZoom() >= 9) { if (!map.hasLayer(pinLayer)) pinLayer.addTo(map); }
+    else { if (map.hasLayer(pinLayer)) map.removeLayer(pinLayer); }
+  };
+  map.on('zoomend', togglePins);
+
+  mapState.highlightLayer = L.layerGroup().addTo(map);
+
+  // Stats
+  const cityCount = data.all_pincodes_cities.length;
+  const pinCount  = data.specific_pincodes.length;
+  const partialCount = Object.keys(groups).length;
+  document.getElementById('map-legend-stats').textContent =
+    cityCount + ' metros · ' + partialCount + ' partial cities · ' + pinCount + ' pincodes';
+
+  const allPoints = [
+    ...data.all_pincodes_cities.map(c => [c.lat, c.lng]),
+    ...Object.values(partialCityIdx).map(c => [c.lat, c.lng]),
+  ];
+  setTimeout(() => {
+    map.invalidateSize();
+    map.fitBounds(allPoints, { padding: [50, 50], maxZoom: 6 });
+    togglePins();
+  }, 120);
+}
+
+const areaCache = {};
+async function fetchAreaName(pin) {
+  if (areaCache[pin] !== undefined) return areaCache[pin];
+  try {
+    const res = await fetch('https://api.postalpincode.in/pincode/' + pin);
+    const data = await res.json();
+    if (Array.isArray(data) && data[0]?.Status === 'Success' && data[0].PostOffice?.length) {
+      const offices = data[0].PostOffice;
+      const main = offices.find(o => o.BranchType === 'Head Post Office')
+                || offices.find(o => o.BranchType === 'Sub Post Office')
+                || offices[0];
+      const info = { area: main.Name, district: main.District, state: main.State };
+      areaCache[pin] = info;
+      return info;
+    }
+  } catch (e) { /* network/CORS — fall through */ }
+  areaCache[pin] = null;
+  return null;
+}
+
+function renderAreaSuffix(info) {
+  if (!info) return '';
+  return ' <span class="area-tag">' + (info.area || '') + (info.district ? ', ' + info.district : '') + '</span>';
+}
+
+async function checkPincode() {
+  const inp = document.getElementById('map-search-input');
+  const resBox = document.getElementById('map-search-result');
+  const pin = (inp.value || '').trim();
+
+  if (!/^\d{6}$/.test(pin)) {
+    resBox.className = 'map-search-result show fail';
+    resBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Enter a valid 6-digit pincode';
+    return;
+  }
+
+  mapState.highlightLayer.clearLayers();
+
+  // Show a pending state while we look up the area
+  resBox.className = 'map-search-result show pending';
+  resBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Looking up ' + pin + '…';
+  const areaInfoP = fetchAreaName(pin); // kick off in parallel
+
+  // 1. Direct pincode match (specific list)
+  const hit = mapState.pincodeIndex[pin];
+  if (hit) {
+    const info = await areaInfoP;
+    resBox.className = 'map-search-result show success';
+    resBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> Serviceable — ' + hit.city + ' (' + pin + ')' + renderAreaSuffix(info);
+    const cityBlob = mapState.partialCityIndex[hit.city];
+    if (cityBlob) mapState.map.flyTo([cityBlob.lat, cityBlob.lng], 11, { duration: 0.7 });
+    setTimeout(() => flyAndPulse(hit.lat, hit.lng, 13), 700);
+    return;
+  }
+
+  // 2. Prefix match for "All pincodes" metros (first 3 digits → metro)
+  // All NCR pincodes (Delhi 110, Gurugram 122, Noida/GBN 201, Faridabad 121, Ghaziabad 201) map to Delhi NCR
+  const metroByPrefix = {
+    '560': 'Bangalore', '561': 'Bangalore', '562': 'Bangalore',
+    '600': 'Chennai',   '601': 'Chennai',   '602': 'Chennai', '603': 'Chennai',
+    '700': 'Kolkata',   '711': 'Kolkata',   '712': 'Kolkata',
+    '500': 'Hyderabad', '501': 'Hyderabad', '502': 'Hyderabad',
+    '110': 'Delhi NCR', '122': 'Delhi NCR', '121': 'Delhi NCR', '201': 'Delhi NCR', '203': 'Delhi NCR',
+    '400': 'Mumbai', '401': 'Mumbai', '402': 'Mumbai',
+    '411': 'Pune',   '412': 'Pune',
+    '380': 'Ahmedabad', '382': 'Ahmedabad'
+  };
+
+  const metro = metroByPrefix[pin.slice(0, 3)];
+  if (metro) {
+    const city = mapState.metroCentroid[metro];
+    if (city) {
+      const info = await areaInfoP;
+      resBox.className = 'map-search-result show success';
+      resBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> Serviceable — ' + metro + ' (' + pin + ')' + renderAreaSuffix(info);
+      flyAndPulse(city.lat, city.lng, 10);
+      return;
+    }
+  }
+
+  // 3. Not serviceable
+  const info = await areaInfoP;
+  resBox.className = 'map-search-result show fail';
+  resBox.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Not serviceable — ' + pin + renderAreaSuffix(info);
+}
+
+function flyAndPulse(lat, lng, zoom) {
+  mapState.map.flyTo([lat, lng], zoom, { duration: 0.9 });
+  // Pulsing green ring on top of the target
+  const pulse = L.circleMarker([lat, lng], {
+    radius: 10,
+    color: '#1a6b4a',
+    weight: 2.5,
+    fillColor: '#1a6b4a',
+    fillOpacity: 0.35,
+    className: 'pin-pulse',
+  });
+  mapState.highlightLayer.addLayer(pulse);
+  setTimeout(() => mapState.highlightLayer.clearLayers(), 3000);
+}
+
+// Enter key submits search
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('map-search-input');
+  if (inp) {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); checkPincode(); }
+    });
+    inp.addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    });
+  }
+});
+</script>
 
 </div><!-- /app-container -->
 
