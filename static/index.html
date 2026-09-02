@@ -844,6 +844,9 @@
       <a class="nav-item" data-page="employment-verify" onclick="showPage('employment-verify', this)">
         <i class="fa-solid fa-briefcase"></i> Employment Verification
       </a>
+      <a class="nav-item" data-page="domain-verify" onclick="showPage('domain-verify', this)">
+        <i class="fa-solid fa-globe"></i> Domain Verification
+      </a>
       <a class="nav-item" data-page="map" onclick="showPage('map', this)">
         <i class="fa-solid fa-map-location-dot"></i> Serviceable Map
       </a>
@@ -1441,6 +1444,28 @@
           <i class="fa-solid fa-magnifying-glass btn-icon"></i> Verify
         </button>
         <div id="emp-result" style="margin-top:16px; display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: Domain Verification ═══════════ -->
+    <div class="page" id="page-domain-verify">
+      <div class="page-header"><h2>Domain Verification</h2><p>Check if a work email genuinely belongs to the company — an employer-authenticity signal</p></div>
+      <div class="card" style="max-width:760px;">
+        <div class="card-title"><div class="icon"><i class="fa-solid fa-globe"></i></div> Verify Work Email</div>
+        <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start;">
+          <div style="flex:1; min-width:260px;">
+            <label class="fl" style="display:block; margin-bottom:7px;">Company Name <small style="color:#94a3b8; font-weight:400;">(recommended)</small></label>
+            <input type="text" id="dv-company" class="fi" placeholder="e.g. Infosys Limited" autocomplete="off" style="width:100%;" />
+          </div>
+          <div style="flex:1; min-width:260px;">
+            <label class="fl" style="display:block; margin-bottom:7px;">Work Email <span style="color:#dc2626;">*</span></label>
+            <input type="email" id="dv-email" class="fi" placeholder="e.g. rahul@infosys.com" autocomplete="off" style="width:100%;" />
+          </div>
+        </div>
+        <button class="btn btn-blue" id="dv-verify-btn" onclick="verifyDomain()" style="width:100%; margin-top:18px;">
+          <i class="fa-solid fa-magnifying-glass btn-icon"></i> Verify
+        </button>
+        <div id="dv-result" style="margin-top:16px; display:none;"></div>
       </div>
     </div>
 
@@ -3896,6 +3921,129 @@ async function verifyEmployment() {
 
 document.getElementById('emp-input').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') verifyEmployment();
+});
+
+async function verifyDomain() {
+  const email = document.getElementById('dv-email').value.trim();
+  const company = document.getElementById('dv-company').value.trim();
+  const resultDiv = document.getElementById('dv-result');
+  const btn = document.getElementById('dv-verify-btn');
+
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    resultDiv.style.display = '';
+    resultDiv.innerHTML = '<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;font-size:13px;">Enter a valid work email address.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin btn-icon"></i> Verifying...';
+  resultDiv.style.display = '';
+  resultDiv.innerHTML = '<div style="padding:10px;color:#64748b;font-size:13px;">Checking domain &amp; company match…</div>';
+
+  try {
+    const res = await fetch('/api/verify-domain', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ email: email, company: company })
+    });
+    const d = await res.json();
+
+    if (!res.ok || d.success === false || d.error) {
+      let msg = d.error || d.message || d.detail || ('Verification failed (HTTP ' + res.status + ')');
+      if (typeof msg !== 'string') msg = JSON.stringify(msg);
+      resultDiv.innerHTML = '<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;font-size:13px;"><i class="fa-solid fa-circle-xmark"></i> ' + msg + '</div>';
+      return;
+    }
+
+    // A domain younger than 1 year is a hard red flag — it OVERRIDES the API verdict.
+    // A brand-new domain that matches a company name is exactly what a fake employer looks like.
+    const ageDays = (d.domain_info && typeof d.domain_info.age_days === 'number') ? d.domain_info.age_days : null;
+    const newDomain = ageDays !== null && ageDays < 365;
+
+    // Verdict theming
+    const verdict = (d.verdict || 'UNKNOWN').toUpperCase();
+    let theme;
+    if (newDomain) theme = { bg:'#fef2f2', bd:'#fecaca', fg:'#991b1b', ic:'fa-triangle-exclamation', label:'High Risk — New Domain' };
+    else if (verdict === 'AUTHENTIC') theme = { bg:'#f0fdf4', bd:'#bbf7d0', fg:'#065f46', ic:'fa-circle-check', label:'Authentic' };
+    else if (verdict === 'REVIEW') theme = { bg:'#fffbeb', bd:'#fde68a', fg:'#92400e', ic:'fa-circle-exclamation', label:'Needs Review' };
+    else theme = { bg:'#fef2f2', bd:'#fecaca', fg:'#991b1b', ic:'fa-triangle-exclamation', label:verdict === 'UNKNOWN' ? 'Unknown' : 'Suspicious' };
+
+    const dash = function(v) { return (v === null || v === undefined || v === '') ? '<span style="color:#94a3b8;">—</span>' : v; };
+    function chip(label, state) {
+      const c = state === 'good' ? {b:'#dcfce7',t:'#065f46',i:'fa-check'} :
+                state === 'bad'  ? {b:'#fee2e2',t:'#991b1b',i:'fa-xmark'} :
+                state === 'warn' ? {b:'#fef3c7',t:'#92400e',i:'fa-triangle-exclamation'} :
+                                   {b:'#f1f5f9',t:'#64748b',i:'fa-minus'};
+      return '<span style="display:inline-flex;align-items:center;gap:5px;background:' + c.b + ';color:' + c.t + ';padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;"><i class="fa-solid ' + c.i + '"></i>' + label + '</span>';
+    }
+    function section(title) {
+      return '<div style="margin-top:16px;padding-bottom:4px;border-bottom:1px solid ' + theme.bd + ';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:' + theme.fg + ';">' + title + '</div>';
+    }
+    function row(label, value) {
+      return '<tr><td style="padding:5px 0;color:#475569;font-weight:600;width:150px;vertical-align:top;font-size:13px;">' + label + '</td><td style="padding:5px 0;color:#1e293b;font-weight:700;font-size:13px;word-break:break-word;">' + dash(value) + '</td></tr>';
+    }
+
+    let html = '<div style="padding:16px;background:' + theme.bg + ';border:1px solid ' + theme.bd + ';border-radius:10px;">';
+
+    // Verdict header (no numeric score — the verdict + reason is the honest signal)
+    html += '<div style="font-weight:800;color:' + theme.fg + ';font-size:16px;"><i class="fa-solid ' + theme.ic + '"></i> ' + theme.label + '</div>';
+
+    // reason — suppressed when the new-domain override fires (API reason would wrongly say "well established")
+    if (d.reason && !newDomain) html += '<div style="margin-top:10px;font-size:13px;color:#334155;line-height:1.5;">' + d.reason + '</div>';
+
+    // RED FLAG banner: newly registered domain (< 1 year old) — this drove the High Risk verdict above
+    if (newDomain) {
+      const ageTxt = ageDays < 31 ? (ageDays + ' day' + (ageDays === 1 ? '' : 's')) : (d.domain_info.age_readable || (ageDays + ' days'));
+      html += '<div style="margin-top:12px;padding:11px 13px;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:8px;color:#991b1b;font-size:13px;font-weight:600;line-height:1.5;"><i class="fa-solid fa-flag" style="margin-right:6px;"></i>RED FLAG: domain is only ' + ageTxt + ' old (less than 1 year). Even though it matches the company name, a newly registered domain is a common sign of a shell or fake employer — verify carefully.</div>';
+    }
+
+    // Checked details
+    html += section('Checked');
+    html += '<table style="width:100%;border-collapse:collapse;margin-top:4px;">';
+    html += row('Email', d.email);
+    html += row('Company', d.company);
+    html += row('Domain', d.domain);
+    if (d.name_match) {
+      const nm = String(d.name_match).toUpperCase();
+      const nmColor = nm === 'STRONG' ? '#065f46' : nm === 'NONE' ? '#991b1b' : '#92400e';
+      html += row('Company &#8596; Domain match', '<span style="color:' + nmColor + ';">' + nm + '</span>');
+    }
+    html += '</table>';
+
+    // Signal chips
+    html += section('Signals');
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
+    html += chip(d.format_valid ? 'Format valid' : 'Invalid format', d.format_valid ? 'good' : 'bad');
+    html += chip(d.has_mx ? 'Domain receives mail' : 'No mail server (MX)', d.has_mx ? 'good' : 'bad');
+    html += chip(d.is_free ? 'Personal email provider' : 'Custom company domain', d.is_free ? 'warn' : 'good');
+    html += chip(d.is_disposable ? 'Disposable / temp mail' : 'Not disposable', d.is_disposable ? 'bad' : 'good');
+    html += '</div>';
+
+    // Domain info
+    const di = d.domain_info || {};
+    if (di && (di.registrar || di.created || di.age_readable)) {
+      html += section('Domain Info');
+      html += '<table style="width:100%;border-collapse:collapse;margin-top:4px;">';
+      html += row('Registrar', di.registrar);
+      html += row('Created', di.created ? (di.created + (di.age_readable ? ' · ' + di.age_readable + ' old' : '')) : null);
+      html += row('Expires', di.expires);
+      html += row('Last updated', di.updated);
+      html += '</table>';
+    }
+
+    html += '</div>';
+    resultDiv.innerHTML = html;
+  } catch(e) {
+    resultDiv.innerHTML = '<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;font-size:13px;">Error: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass btn-icon"></i> Verify';
+  }
+}
+
+['dv-email', 'dv-company'].forEach(function(id) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', function(e) { if (e.key === 'Enter') verifyDomain(); });
 });
 </script>
 

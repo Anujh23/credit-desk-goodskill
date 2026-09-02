@@ -789,6 +789,51 @@ async def verify_employment(request: Request):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
+# ─── Domain / Work-Email Verification (Harbor B2B) ───────────
+
+HARBOR_API_KEY = os.getenv("HARBOR_API_KEY", "").strip()
+HARBOR_VERIFY_EMAIL_URL = os.getenv(
+    "HARBOR_VERIFY_EMAIL_URL",
+    "https://harbor-efbv.onrender.com/api/b2b/verify-email",
+).strip()
+
+
+@app.post("/api/verify-domain")
+async def verify_domain(request: Request):
+    """Verify a work email's domain against a company name via Harbor B2B API.
+
+    Confirms whether an applicant's work email genuinely belongs to their
+    claimed employer (domain match + MX + domain age) — an employer-authenticity
+    signal for the credit manager.
+    """
+    data = await request.json()
+    email = (data.get("email") or "").strip()
+    company = (data.get("company") or "").strip()
+    track(request, "VERIFY_DOMAIN", f"email={email or '-'} company={company or '-'}")
+    if not email or "@" not in email:
+        return JSONResponse(content={"error": "Enter a valid work email address."}, status_code=400)
+    if not HARBOR_API_KEY:
+        return JSONResponse(content={"error": "Harbor API key not configured on server."}, status_code=500)
+    body = {"email": email}
+    if company:
+        body["company"] = company
+    try:
+        resp = requests.post(
+            HARBOR_VERIFY_EMAIL_URL,
+            json=body,
+            headers={
+                "x-api-key": HARBOR_API_KEY,
+                "Content-Type": "application/json",
+            },
+            timeout=90,  # render free tier can cold-start slowly
+        )
+        return JSONResponse(content=resp.json(), status_code=resp.status_code)
+    except requests.exceptions.ConnectionError:
+        return JSONResponse(content={"error": "Cannot connect to domain verification service."}, status_code=503)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
 @app.on_event("startup")
 async def startup():
     """Initialize database tables and connection pool on app startup."""
