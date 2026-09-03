@@ -9,6 +9,9 @@ import os
 import jwt
 import xml.etree.ElementTree as ET
 import tempfile
+import socket
+import ipaddress
+from urllib.parse import urlparse, unquote
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from scoring import calculate_sanction
@@ -832,6 +835,108 @@ async def verify_domain(request: Request):
         return JSONResponse(content={"error": "Cannot connect to domain verification service."}, status_code=503)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+def _is_public_host(hostname: str) -> bool:
+    """SSRF guard: True only if every resolved IP for hostname is a public address."""
+    try:
+        infos = socket.getaddrinfo(hostname, None)
+    except Exception:
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        try:
+            ip_obj = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if (ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local
+                or ip_obj.is_reserved or ip_obj.is_multicast or ip_obj.is_unspecified):
+            return False
+    return True
+
+
+def _proxy_msg(text: str, status: int = 200):
+    return HTMLResponse(
+        content='<div style="font:14px system-ui,sans-serif;padding:24px;color:#64748b;text-align:center;">' + text + '</div>',
+        status_code=status,
+    )
+
+
+@app.get("/api/site-proxy")
+async def site_proxy(request: Request, url: str = Query(default="")):
+    """Fetch a company website server-side and re-serve it WITHOUT X-Frame-Options,
+    injecting <base href> so its relative assets load from the real domain. Lets the
+    Domain Verification preview show sites that block iframe embedding.
+
+    SSRF-guarded: only public http(s) hosts on standard ports. Note: redirects are
+    followed by requests; the initial host is validated (residual redirect/DNS-rebind
+    risk is acceptable for this internal CM tool). JS-heavy SPA sites may render partially.
+    """
+    target = unquote(url or "").strip()
+    parsed = urlparse(target)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return _proxy_msg("Invalid URL.", 400)
+    if parsed.port and parsed.port not in (80, 443):
+        return _proxy_msg("Only standard web ports are allowed.", 400)
+    if not _is_public_host(parsed.hostname):
+        return _proxy_msg("This host is not allowed.", 400)
+    try:
+        resp = requests.get(
+            target,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+            },
+            timeout=15,
+            stream=True,
+        )
+    except requests.exceptions.RequestException:
+        return _proxy_msg("Could not reach the site. Use the <b>Open</b> button to view it live.")
+
+    status = resp.status_code
+    ctype = resp.headers.get("Content-Type", "")
+    if "text/html" not in ctype.lower():
+        resp.close()
+        return _proxy_msg("This site didn't return a viewable page. Use the <b>Open</b> button.")
+
+    raw = b""
+    for chunk in resp.iter_content(65536):
+        raw += chunk
+        if len(raw) > 4_000_000:  # cap ~4MB
+            break
+    resp.close()
+    html = raw.decode(resp.encoding or "utf-8", errors="replace")
+
+    # Enterprise bot-shields (Akamai/Cloudflare/Imperva) reject server-side fetches.
+    # Show a clean fallback instead of their raw "Access Denied" page.
+    sniff = html[:4000].lower()
+    block_sigs = ("edgesuite.net", "you don't have permission to access", "access denied",
+                  "attention required", "request unsuccessful", "incapsula",
+                  "just a moment", "/cdn-cgi/")
+    if status >= 400 or any(s in sniff for s in block_sigs):
+        return _proxy_msg("This site blocks automated preview (bot protection). "
+                          "Click <b>Open</b> to view it live in a new tab.")
+
+    # Drop page-level CSP / X-Frame meta that could block rendering when re-served
+    html = re.sub(
+        r'<meta[^>]+http-equiv=["\']?(content-security-policy|x-frame-options)["\']?[^>]*>',
+        "", html, flags=re.IGNORECASE)
+    # Inject <base> so relative CSS/images/fonts resolve to the real domain
+    base_tag = '<base href="' + parsed.scheme + '://' + parsed.netloc + '/">'
+    if re.search(r"<head[^>]*>", html, flags=re.IGNORECASE):
+        html = re.sub(r"(<head[^>]*>)", lambda m: m.group(1) + base_tag, html, count=1, flags=re.IGNORECASE)
+    else:
+        html = base_tag + html
+
+    return HTMLResponse(content=html, status_code=200)
 
 
 @app.on_event("startup")

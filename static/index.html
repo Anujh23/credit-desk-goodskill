@@ -1454,8 +1454,8 @@
         <div class="card-title"><div class="icon"><i class="fa-solid fa-globe"></i></div> Verify Work Email</div>
         <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start;">
           <div style="flex:1; min-width:260px;">
-            <label class="fl" style="display:block; margin-bottom:7px;">Company Name <small style="color:#94a3b8; font-weight:400;">(recommended)</small></label>
-            <input type="text" id="dv-company" class="fi" placeholder="e.g. Infosys Limited" autocomplete="off" style="width:100%;" />
+            <label class="fl" style="display:block; margin-bottom:7px;">Company Domain <small style="color:#94a3b8; font-weight:400;">(recommended)</small></label>
+            <input type="text" id="dv-company" class="fi" placeholder="e.g. infosys.com" autocomplete="off" style="width:100%;" />
           </div>
           <div style="flex:1; min-width:260px;">
             <label class="fl" style="display:block; margin-bottom:7px;">Work Email <span style="color:#dc2626;">*</span></label>
@@ -1465,8 +1465,8 @@
         <button class="btn btn-blue" id="dv-verify-btn" onclick="verifyDomain()" style="width:100%; margin-top:18px;">
           <i class="fa-solid fa-magnifying-glass btn-icon"></i> Verify
         </button>
-        <div id="dv-result" style="margin-top:16px; display:none;"></div>
       </div>
+      <div id="dv-result" style="margin-top:16px; display:none;"></div>
     </div>
 
     <!-- ═══════════ PAGE: Not Eligible Professions ═══════════ -->
@@ -3983,7 +3983,7 @@ async function verifyDomain() {
       return '<tr><td style="padding:5px 0;color:#475569;font-weight:600;width:150px;vertical-align:top;font-size:13px;">' + label + '</td><td style="padding:5px 0;color:#1e293b;font-weight:700;font-size:13px;word-break:break-word;">' + dash(value) + '</td></tr>';
     }
 
-    let html = '<div style="padding:16px;background:' + theme.bg + ';border:1px solid ' + theme.bd + ';border-radius:10px;">';
+    let html = '<div style="padding:16px;background:' + theme.bg + ';border:1px solid ' + theme.bd + ';border-radius:10px;height:100%;box-sizing:border-box;">';
 
     // Verdict header (no numeric score — the verdict + reason is the honest signal)
     html += '<div style="font-weight:800;color:' + theme.fg + ';font-size:16px;"><i class="fa-solid ' + theme.ic + '"></i> ' + theme.label + '</div>';
@@ -4032,7 +4032,36 @@ async function verifyDomain() {
     }
 
     html += '</div>';
-    resultDiv.innerHTML = html;
+
+    // Side window: live preview of the company website so the CM can eyeball it.
+    // Many corporate sites block embedding (X-Frame-Options) — keep a prominent "Open" fallback.
+    let sitePanel = '';
+    if (d.domain) {
+      const url = 'https://' + d.domain;
+      const safeUrl = url.replace(/"/g, '%22');
+      // Live view via our own server proxy (/api/site-proxy): fetches the site server-side,
+      // strips X-Frame-Options and injects <base href> so it renders in the iframe below.
+      sitePanel =
+        '<div style="flex:2 1 480px; min-width:320px; display:flex; flex-direction:column;">' +
+          '<div style="border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; background:#fff; flex:1; display:flex; flex-direction:column;">' +
+            '<div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0;">' +
+              '<i class="fa-solid fa-globe" style="color:#64748b;"></i>' +
+              '<span style="font-size:12px; color:#334155; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + url + '</span>' +
+              '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>' +
+            '</div>' +
+            '<div style="flex:1 1 auto; min-height:420px; background:#fff;">' +
+              '<iframe src="/api/site-proxy?url=' + encodeURIComponent(url) + '" title="Company website preview" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-forms" style="width:100%; height:100%; border:0; display:block; background:#fff;"></iframe>' +
+            '</div>' +
+            '<div style="padding:7px 12px; font-size:11px; color:#94a3b8; background:#f8fafc; border-top:1px solid #e2e8f0;"><i class="fa-solid fa-circle-info"></i> Live view (loaded via our server). App-style sites (infosys, banks) may render partially — click <b>Open</b> for the real site.</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    resultDiv.innerHTML =
+      '<div style="display:flex; gap:16px; flex-wrap:wrap; align-items:stretch;">' +
+        '<div style="flex:1 1 380px; min-width:300px; max-width:560px;">' + html + '</div>' +
+        sitePanel +
+      '</div>';
   } catch(e) {
     resultDiv.innerHTML = '<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;font-size:13px;">Error: ' + e.message + '</div>';
   } finally {
