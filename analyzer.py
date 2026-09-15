@@ -214,9 +214,11 @@ def _get_amount(txn: dict) -> float:
 
 
 def _get_date(txn: dict) -> str:
+    # transactionTimestamp first: matches the bank statement's Transaction Date column
+    # (valueDate can roll to the next day for late-evening settlements)
     return (
-        txn.get('valueDate')
-        or txn.get('transactionTimestamp')
+        txn.get('transactionTimestamp')
+        or txn.get('valueDate')
         or txn.get('txnDate')
         or txn.get('Date')
         or ''

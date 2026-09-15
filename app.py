@@ -101,6 +101,19 @@ def track(request: Request, action: str, details: str = None):
     log_activity(username, action, details, ip)
 
 
+# Paths reachable without a valid JWT — everything else under /api (and /calculate) requires login
+PUBLIC_API_PATHS = {"/api/auth/login", "/api/auth/verify"}
+
+
+@app.middleware("http")
+async def enforce_login(request: Request, call_next):
+    path = request.url.path
+    if (path.startswith("/api/") or path == "/calculate") and path not in PUBLIC_API_PATHS:
+        if get_current_user(request) == "anonymous":
+            return JSONResponse(content={"error": "Session expired. Please log in again."}, status_code=401)
+    return await call_next(request)
+
+
 # ─── Auth Routes ─────────────────────────────────────────────
 
 @app.post("/api/auth/login")
@@ -685,8 +698,9 @@ async def api_search_statements(request: Request):
 
 
 @app.get("/api/get-statement/{statement_id}")
-async def api_get_statement(statement_id: int):
+async def api_get_statement(request: Request, statement_id: int):
     """Load a full saved bank statement by ID."""
+    track(request, "VIEW_STATEMENT", f"Statement ID: {statement_id}")
     try:
         result = get_bank_statement(statement_id)
         if not result:
@@ -731,6 +745,7 @@ async def verify_pan(request: Request):
         return JSONResponse(content={"error": "Invalid PAN number. Must be 10 characters."}, status_code=400)
     if not CASHFREE_CLIENT_ID or not CASHFREE_CLIENT_SECRET:
         return JSONResponse(content={"error": "Cashfree credentials not configured on server."}, status_code=500)
+    track(request, "VERIFY_PAN", f"PAN: {pan_number}")
     verification_id = f"pan-{uuid.uuid4().hex[:16]}"
     try:
         resp = requests.post(

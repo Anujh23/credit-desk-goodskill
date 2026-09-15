@@ -1871,6 +1871,21 @@ function authHeaders(extra = {}) {
   return headers;
 }
 
+// Global 401 guard: expired/missing session on any API call forces re-login
+const _origFetch = window.fetch.bind(window);
+window.fetch = async function(url, opts) {
+  const res = await _origFetch(url, opts);
+  const path = typeof url === 'string' ? url : (url && url.url) || '';
+  if (res.status === 401 && (path.startsWith('/api/') || path === '/calculate') && !path.startsWith('/api/auth/')) {
+    sessionStorage.removeItem('jwt');
+    currentUser = null;
+    showLogin();
+    $('loginErrorMsg').textContent = 'Session expired. Please sign in again.';
+    $('loginError').classList.add('visible');
+  }
+  return res;
+};
+
 // ── Globals ──
 let AA = { token: '', consentHandle: '', consentId: '', custId: '', sessionId: '', csCurrentStep: 1, fiCurrentStep: 1, failedAccounts: [], pendingAccounts: [], readyAccounts: [], parentFailed: false };
 let fetchedAccounts = [];
@@ -2168,27 +2183,30 @@ async function fiStatus() {
     AA.parentFailed = overallUpper === 'FAILED' || overallUpper === 'ERROR' || overallUpper === 'REJECTED';
     const hasPending = AA.pendingAccounts.length > 0 || overallUpper === 'PENDING';
     const hasReady = (Array.isArray(accounts) && accounts.some(a => (a.status || a.Status) === 'READY')) || overallUpper === 'READY';
-    // Unlock fetch button if either:
-    //   (a) normal case: no PENDING && has READY && parent not failed, OR
-    //   (b) per-link fallback: parent failed but we have READY accounts with linkRefNumbers
-    const canFetchNormal = !hasPending && hasReady && !AA.parentFailed;
-    const canFetchPerLink = AA.parentFailed && AA.readyAccounts.length > 0;
-    if (canFetchNormal || canFetchPerLink) {
-      document.getElementById('fi-nextStep3').style.display = '';
-    }
-    // Render a note explaining the AA-level failure (different tone for fallback vs hard-fail)
+    // Wait for ALL pending accounts to resolve before showing Proceed.
+    // Once all are resolved (READY or FAILED), unlock if at least one is READY.
+    // The per-link fallback path inside fiFetch handles parent-FAILED with READY children.
+    const canProceed = !hasPending && hasReady;
+    document.getElementById('fi-nextStep3').style.display = canProceed ? '' : 'none';
     const existing = document.getElementById('fi-parentFailNote');
     if (existing) existing.remove();
-    if (AA.parentFailed) {
+    const allResolved = !hasPending;
+    const allFailedNoneReady = allResolved && !hasReady && (AA.failedAccounts.length > 0 || AA.parentFailed);
+    let noteText = '';
+    let noteRed = false;
+    if (allFailedNoneReady) {
+      noteRed = true;
+      noteText = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i><b>All bank accounts failed to share data.</b> No READY accounts available. Start a new consent, or ask the customer to retry from their AA app.';
+    } else if (canProceed && AA.parentFailed && AA.readyAccounts.length > 0) {
+      noteText = '<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Overall AA request marked <b>' + overallUpper + '</b>, but ' + AA.readyAccounts.length + ' account(s) reported READY. Will attempt per-account fetch using linkRefNumber.';
+    }
+    if (noteText) {
       const note = document.createElement('div');
       note.id = 'fi-parentFailNote';
-      if (canFetchPerLink) {
-        note.style.cssText = 'margin-top:12px; padding:12px 14px; background:#fffbeb; border-left:3px solid #f59e0b; border-radius:4px; font-size:13px; color:#78350f;';
-        note.innerHTML = '<i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Overall AA request marked <b>' + overallUpper + '</b>, but ' + AA.readyAccounts.length + ' account(s) reported READY. Will attempt per-account fetch using linkRefNumber.';
-      } else {
-        note.style.cssText = 'margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:3px solid #dc2626; border-radius:4px; font-size:13px; color:#7f1d1d;';
-        note.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i><b>Data request failed at AA</b> (fiRequestStatus: ' + overallUpper + '). No READY accounts to fetch. Try a new consent, or contact Finsense support with the consent handle.';
-      }
+      note.style.cssText = noteRed
+        ? 'margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:3px solid #dc2626; border-radius:4px; font-size:13px; color:#7f1d1d;'
+        : 'margin-top:12px; padding:12px 14px; background:#fffbeb; border-left:3px solid #f59e0b; border-radius:4px; font-size:13px; color:#78350f;';
+      note.innerHTML = noteText;
       document.getElementById('fi-statusResult').appendChild(note);
     }
   } catch (e) {
@@ -2334,7 +2352,7 @@ function downloadOnePDF(acc, idx) {
   // Date range from transactions
   let dateFrom = '', dateTo = '';
   if (txns.length) {
-    const dates = txns.map(t => t.valueDate || t.transactionTimestamp || t.txnDate || '').filter(Boolean);
+    const dates = txns.map(t => t.transactionTimestamp || t.valueDate || t.txnDate || '').filter(Boolean);
     if (dates.length) { dateFrom = dates[0]; dateTo = dates[dates.length - 1]; }
   }
 
@@ -2374,7 +2392,7 @@ function downloadOnePDF(acc, idx) {
 
   // Transaction table
   const tableData = txns.map(txn => {
-    const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
+    const date = txn.transactionTimestamp || txn.valueDate || txn.txnDate || '';
     const narration = txn.narration || txn.transactionNarration || txn.reference || '';
     const type = (txn.type || txn.txnType || '').toUpperCase();
     const amount = txn.amount || txn.transactionAmount || '';
@@ -2493,7 +2511,7 @@ function renderAccounts(accounts) {
       acc.transactions.forEach(txn => {
         const type = esc((txn.type || txn.txnType || '').toUpperCase());
         const cls = type === 'CREDIT' ? 'txn-type-credit' : 'txn-type-debit';
-        const date = txn.valueDate || txn.transactionTimestamp || txn.txnDate || '';
+        const date = txn.transactionTimestamp || txn.valueDate || txn.txnDate || '';
         const displayDate = date ? new Date(date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' }) : '';
         const amount = txn.amount || txn.transactionAmount || '';
         const balance = txn.currentBalance || txn.balance || '';
