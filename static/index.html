@@ -847,6 +847,9 @@
       <a class="nav-item" data-page="domain-verify" onclick="showPage('domain-verify', this)">
         <i class="fa-solid fa-globe"></i> Domain Verification
       </a>
+      <a class="nav-item" data-page="liveness" onclick="showPage('liveness', this)">
+        <i class="fa-solid fa-street-view"></i> Liveness Check
+      </a>
       <a class="nav-item" data-page="map" onclick="showPage('map', this)">
         <i class="fa-solid fa-map-location-dot"></i> Serviceable Map
       </a>
@@ -1471,6 +1474,24 @@
         </button>
       </div>
       <div id="dv-result" style="margin-top:16px; display:none;"></div>
+    </div>
+
+    <!-- ═══════════ PAGE: Liveness Check ═══════════ -->
+    <div class="page" id="page-liveness">
+      <div class="page-header"><h2>Liveness Check</h2><p>Share this link with the customer to capture a live selfie with geo-tagged location</p></div>
+      <div class="card" style="max-width:760px;">
+        <div class="card-title"><div class="icon"><i class="fa-solid fa-street-view"></i></div> Customer Liveness Link</div>
+        <label class="fl" style="display:block; margin-bottom:7px;">Shareable Link</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <input type="text" id="lv-link" class="fi" value="https://reliable-torte-2d9163.netlify.app/" readonly onclick="this.select()" style="flex:1; min-width:260px;" />
+          <button class="btn btn-blue" style="max-width:140px; white-space:nowrap;" onclick="copyLivenessLink(this)"><i class="fa-solid fa-copy btn-icon"></i> Copy Link</button>
+          <a class="btn btn-green" id="lv-wa" target="_blank" rel="noopener" style="max-width:200px; white-space:nowrap; text-decoration:none;"><i class="fa-brands fa-whatsapp btn-icon"></i> Share on WhatsApp</a>
+          <a class="btn btn-amber" href="https://reliable-torte-2d9163.netlify.app/" target="_blank" rel="noopener" style="max-width:120px; white-space:nowrap; text-decoration:none;"><i class="fa-solid fa-up-right-from-square btn-icon"></i> Open</a>
+        </div>
+        <div style="margin-top:16px; padding:9px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:8px; font-size:12.5px; color:#1e40af; line-height:1.6;">
+          <strong>How it works:</strong> The customer opens the link on their phone, allows camera and location access, and captures a live selfie. The photo is geo-tagged with their current location for verification.
+        </div>
+      </div>
     </div>
 
     <!-- ═══════════ PAGE: Not Eligible Professions ═══════════ -->
@@ -4105,6 +4126,18 @@ async function verifyDomain() {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <script>
+// ════════════ Liveness Check ════════════
+const LIVENESS_LINK = 'https://reliable-torte-2d9163.netlify.app/';
+document.getElementById('lv-wa').href = 'https://wa.me/?text=' + encodeURIComponent(
+  'Hello! To complete your loan verification, please open this link on your phone and capture a live selfie (allow camera and location access when asked): ' + LIVENESS_LINK);
+function copyLivenessLink(btn) {
+  navigator.clipboard.writeText(LIVENESS_LINK).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check btn-icon"></i> Copied!';
+    setTimeout(() => { btn.innerHTML = orig; }, 1500);
+  }).catch(() => { const inp = document.getElementById('lv-link'); inp.select(); document.execCommand('copy'); });
+}
+
 // ════════════ Serviceable Map ════════════
 let mapState = { map: null, data: null, pincodeIndex: null, regionLayer: null, pinLayer: null, highlightLayer: null, partialCityIndex: null };
 
