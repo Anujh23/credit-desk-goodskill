@@ -1428,6 +1428,7 @@ def create_credit_analyses_table():
                     id SERIAL PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_by VARCHAR(50),
+                    lead_id VARCHAR(50),
                     -- Credit Analyser inputs
                     monthly_salary NUMERIC(12,2),
                     cibil_score INTEGER,
@@ -1462,6 +1463,8 @@ def create_credit_analyses_table():
                     remarks TEXT
                 )
             """)
+            # Migration for tables created before lead_id existed
+            cur.execute("ALTER TABLE credit_analyses ADD COLUMN IF NOT EXISTS lead_id VARCHAR(50)")
             conn.commit()
             logger.info("credit_analyses table created/verified")
 
@@ -1472,12 +1475,12 @@ def insert_credit_analysis(data: Dict[str, Any]) -> int:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO credit_analyses (
-                    created_by, monthly_salary, cibil_score, cibil_overdue,
+                    created_by, lead_id, monthly_salary, cibil_score, cibil_overdue,
                     active_emi, payday_loans, residence_type, enach_bounces,
                     status, worthiness_score, obligation_pct,
                     sanction_pct_min, sanction_pct_max, sanction_min, sanction_max
                 ) VALUES (
-                    %(created_by)s, %(monthly_salary)s, %(cibil_score)s, %(cibil_overdue)s,
+                    %(created_by)s, %(lead_id)s, %(monthly_salary)s, %(cibil_score)s, %(cibil_overdue)s,
                     %(active_emi)s, %(payday_loans)s, %(residence_type)s, %(enach_bounces)s,
                     %(status)s, %(worthiness_score)s, %(obligation_pct)s,
                     %(sanction_pct_min)s, %(sanction_pct_max)s, %(sanction_min)s, %(sanction_max)s

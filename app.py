@@ -433,12 +433,14 @@ async def analyze_credit(request: Request):
             rejection_reasons.append('Too many eNACH Bounces')
 
         username = get_current_user(request)
+        lead_id = str(data.get('lead_id') or '').strip()[:50] or None
 
         if rejection_reasons:
             # Log rejected analysis to DB
             try:
                 row_id = insert_credit_analysis({
                     'created_by': username,
+                    'lead_id': lead_id,
                     'monthly_salary': processed['monthly_income'],
                     'cibil_score': processed['cibil'],
                     'cibil_overdue': processed['cibil_overdue'],
@@ -480,6 +482,7 @@ async def analyze_credit(request: Request):
         try:
             row_id = insert_credit_analysis({
                 'created_by': username,
+                'lead_id': lead_id,
                 'monthly_salary': processed['monthly_income'],
                 'cibil_score': processed['cibil'],
                 'cibil_overdue': processed['cibil_overdue'],
